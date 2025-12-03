@@ -24,7 +24,9 @@ export const FilterDropdown: FC<FilterDropdownProps> = ({
   onToggleOption,
   selectedLabel,
 }) => (
-  <div className={`${styles["toolbar"]} ${isOpen ? styles["toolbar--open"] : ""}`}>
+  <div
+    className={`${styles["toolbar"]} ${isOpen ? styles["toolbar--open"] : ""}`}
+  >
     <button
       className={styles["toolbar__dropdown"]}
       type="button"
@@ -72,7 +74,10 @@ export const FilterDropdown: FC<FilterDropdownProps> = ({
                     height="11"
                     viewBox="0 0 17 11"
                     fill="none"
-                    style={{ opacity: option.active ? 1 : 0, transition: "opacity 180ms ease" }}
+                    style={{
+                      opacity: option.active ? 1 : 0,
+                      transition: "opacity 180ms ease",
+                    }}
                   >
                     <path
                       d="M16.1466 0.613251L7.12994 9.62995L0.61358 3.11359"
