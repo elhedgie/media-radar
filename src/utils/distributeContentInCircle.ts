@@ -81,11 +81,19 @@ const resolveCollisions = (items: DistributedItem[]): DistributedItem[] => {
 
   for (const item of sorted) {
     // если элемент помечен как ручной — используем его offset напрямую
-    if (item.manual && typeof item.offsetX === "number" && typeof item.offsetY === "number") {
+    if (
+      item.manual &&
+      typeof item.offsetX === "number" &&
+      typeof item.offsetY === "number"
+    ) {
       const x = item.offsetX;
       const y = item.offsetY;
       const width = item.maxWidth ?? DEFAULT_MAX_WIDTH;
-      const height = estimateHeight(item.text, item.fontSize ?? DEFAULT_FONT_SIZE, width);
+      const height = estimateHeight(
+        item.text,
+        item.fontSize ?? DEFAULT_FONT_SIZE,
+        width
+      );
       const box: Box = { x, y, width, height };
       placed.push({ item, box });
       continue;
@@ -97,10 +105,20 @@ const resolveCollisions = (items: DistributedItem[]): DistributedItem[] => {
     while (attempts < MAX_ATTEMPTS) {
       const rad = angle * DEG2RAD;
       // если заданы offsetX/offsetY — используем их, иначе считаем по полярным координатам
-      const x = typeof item.offsetX === "number" ? item.offsetX : item.radius * Math.cos(rad);
-      const y = typeof item.offsetY === "number" ? item.offsetY : item.radius * Math.sin(rad);
+      const x =
+        typeof item.offsetX === "number"
+          ? item.offsetX
+          : item.radius * Math.cos(rad);
+      const y =
+        typeof item.offsetY === "number"
+          ? item.offsetY
+          : item.radius * Math.sin(rad);
       const width = item.maxWidth ?? DEFAULT_MAX_WIDTH;
-      const height = estimateHeight(item.text, item.fontSize ?? DEFAULT_FONT_SIZE, width);
+      const height = estimateHeight(
+        item.text,
+        item.fontSize ?? DEFAULT_FONT_SIZE,
+        width
+      );
       const candidateBox: Box = { x, y, width, height };
 
       const hasOverlap = placed.some((p) =>
@@ -121,14 +139,24 @@ const resolveCollisions = (items: DistributedItem[]): DistributedItem[] => {
     // но такое при небольшом количестве элементов практически не случится.
     if (!finalBox) {
       const rad = item.angle * DEG2RAD;
-      const x = typeof item.offsetX === "number" ? item.offsetX : item.radius * Math.cos(rad);
-      const y = typeof item.offsetY === "number" ? item.offsetY : item.radius * Math.sin(rad);
+      const x =
+        typeof item.offsetX === "number"
+          ? item.offsetX
+          : item.radius * Math.cos(rad);
+      const y =
+        typeof item.offsetY === "number"
+          ? item.offsetY
+          : item.radius * Math.sin(rad);
       const width = item.maxWidth ?? DEFAULT_MAX_WIDTH;
       finalBox = {
         x,
         y,
         width,
-        height: estimateHeight(item.text, item.fontSize ?? DEFAULT_FONT_SIZE, width),
+        height: estimateHeight(
+          item.text,
+          item.fontSize ?? DEFAULT_FONT_SIZE,
+          width
+        ),
       };
     } else {
       item.angle = angle; // фиксируем новый угол
