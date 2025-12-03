@@ -309,6 +309,9 @@ export const distributeContentInCircle = (
 
     const finalFontSize = Math.max(5, baseFontSize * scale);
     const finalWidths = rawWidths.map((w) => w * scale);
+    // read to satisfy TypeScript noUnusedLocals without changing logic
+    void finalFontSize;
+    void finalWidths;
 
     // равномерный шаг по кругу
     const step = 360 / n;

@@ -30,7 +30,7 @@ type RadarBoardProps = {
   resetZoomTrigger?: number;
   zoomInTrigger?: number;
   zoomOutTrigger?: number;
-  activeFilter?: string;
+  activeFilter?: string | string[];
 };
 
 export const RadarBoard: FC<RadarBoardProps> = ({
