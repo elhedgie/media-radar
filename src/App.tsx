@@ -164,7 +164,7 @@ export default function App() {
 
     const rect = boardRef.current.getBoundingClientRect();
     const containerW = rect.width;
-    const containerH = rect.height;
+    // const containerH = rect.height;
 
     // Виртуальная ширина раскладки (но не больше реальной — чтобы на узких экранах не вылезать)
     const layoutW = Math.min(LAYOUT_WIDTH, containerW);
@@ -195,7 +195,7 @@ export default function App() {
 
       const rect2 = boardRef.current.getBoundingClientRect();
       const newContainerW = rect2.width;
-      const newContainerH = rect2.height;
+      // const newContainerH = rect2.height;
 
       const layoutW2 = layoutWidthRef.current;
 
@@ -233,7 +233,7 @@ export default function App() {
     if (layoutWidthRef.current == null) return;
 
     const rect = boardRef.current.getBoundingClientRect();
-    const containerW = rect.width;
+    // const containerW = rect.width;
     const containerH = rect.height;
     const layoutW = layoutWidthRef.current;
 
