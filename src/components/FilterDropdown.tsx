@@ -24,7 +24,7 @@ export const FilterDropdown: FC<FilterDropdownProps> = ({
   onToggleOption,
   selectedLabel,
 }) => (
-  <div className={styles["toolbar"]}>
+  <div className={`${styles["toolbar"]} ${isOpen ? styles["toolbar--open"] : ""}`}>
     <button
       className={styles["toolbar__dropdown"]}
       type="button"
@@ -66,15 +66,20 @@ export const FilterDropdown: FC<FilterDropdownProps> = ({
               >
                 <span>{option.label}</span>
                 <span className={styles["filter-dot"]}>
-                  {option.active && (
-                    <svg width="17" height="11" viewBox="0 0 17 11" fill="none">
-                      <path
-                        d="M16.1466 0.613251L7.12994 9.62995L0.61358 3.11359"
-                        stroke="black"
-                        strokeWidth="1.7354"
-                      />
-                    </svg>
-                  )}
+                  {/* Всегда рендерим иконку, меняем только прозрачность, чтобы избежать прыжков */}
+                  <svg
+                    width="17"
+                    height="11"
+                    viewBox="0 0 17 11"
+                    fill="none"
+                    style={{ opacity: option.active ? 1 : 0, transition: "opacity 180ms ease" }}
+                  >
+                    <path
+                      d="M16.1466 0.613251L7.12994 9.62995L0.61358 3.11359"
+                      stroke="black"
+                      strokeWidth="1.7354"
+                    />
+                  </svg>
                 </span>
               </li>
             ))}

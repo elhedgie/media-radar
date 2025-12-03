@@ -24,12 +24,12 @@ export const fixedPositions: Record<string, FixedPos> = {
   // News Media Holding
   "news-media": { cx: 870, cy: 420 },
   // Коммерсантъ
-  kommersant: { cx: 1200, cy: 330 },
+  kommersant: { cx: 1100, cy: 360 },
 
   // Комсомольская правда — третий ряд слева
   kp: { cx: 330, cy: 550 },
   // Москва Медиа
-  "msk-media": { cx: 1080, cy: 540 },
+  "msk-media": { cx: 1080, cy: 580 },
 
   // Новостные Telegram-каналы (акцентный)
   "tg-channels": { cx: 650, cy: 340 },

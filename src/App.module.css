@@ -40,10 +40,22 @@
 
 .toolbar {
   display: flex;
+  flex-direction: column;
   align-items: center;
   gap: 0.75rem;
-  position: relative;
-  width: 100%;
+  position: absolute; /* весь тулбар как оверлей */
+  left: 0;
+  top: 0;
+  background-color: white;
+  border-radius: 999px; /* по умолчанию круглый */
+  z-index: 80; /* над доской */
+  width: 240px; /* не растягивать шапку */
+  padding: 0.5rem 1rem; /* компактные отступы */
+  box-shadow: 0 6px 18px rgba(28,42,68,0.06);
+}
+
+.toolbar--open {
+  border-radius: 20px; /* при открытом меню скругление 20px */
 }
 
 .toolbar__dropdown {
@@ -61,7 +73,7 @@
   gap: 8px;
   cursor: pointer;
   border-radius: 999px;
-  box-shadow: 0 6px 18px rgba(28,42,68,0.06);
+  /* box-shadow: 0 6px 18px rgba(28,42,68,0.06); */
   z-index: 60;
   white-space: nowrap;
   box-sizing: border-box;
@@ -75,15 +87,15 @@
 }
 
 .filter-card {
-  position: absolute;
-  top: calc(100% + 0.75rem);
+  /* position: absolute; открывается поверх, не влияет на поток */
+  top: 0;
   left: 0;
   background: #ffffff;
-  border-radius: 20px;
+  /* border-radius: 20px; */
   padding: 1rem 1.25rem;
-  box-shadow: 0 12px 30px rgba(28, 42, 68, 0.15);
+  /* box-shadow: 0 12px 30px rgba(28, 42, 68, 0.15); */
   min-width: 180px;
-  z-index: 10;
+  z-index: 100; /* над доской */
 }
 
 .filter-card ul {
@@ -102,6 +114,7 @@
   font-size: 0.95rem;
   font-weight: 600;
   color: #171c2c;
+  gap: .5em;
 }
 
 .filter-dot {

@@ -47,6 +47,46 @@ export const RadarBoard: FC<RadarBoardProps> = ({
 }) => {
   // локальное состояние трансформации (tx, ty, scale)
   const [transform, setTransform] = useState({ tx: 0, ty: 0, s: 1 });
+  // анимация трансформации: плавный переход между состояниями
+  const animReqRef = useRef<number | null>(null);
+  const animStartRef = useRef<number>(0);
+  const animFromRef = useRef<{ tx: number; ty: number; s: number } | null>(
+    null
+  );
+  const animToRef = useRef<{ tx: number; ty: number; s: number } | null>(null);
+  const ANIM_DURATION = 420; // мс
+
+  const easeInOutCubic = (t: number) =>
+    t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+  const animateTo = (to: { tx: number; ty: number; s: number }) => {
+    if (animReqRef.current) {
+      cancelAnimationFrame(animReqRef.current);
+      animReqRef.current = null;
+    }
+    animStartRef.current = performance.now();
+    animFromRef.current = { ...transform };
+    animToRef.current = to;
+
+    const step = (now: number) => {
+      const start = animStartRef.current;
+      const from = animFromRef.current!;
+      const target = animToRef.current!;
+      const t = Math.min(1, (now - start) / ANIM_DURATION);
+      const k = easeInOutCubic(t);
+      setTransform({
+        tx: from.tx + (target.tx - from.tx) * k,
+        ty: from.ty + (target.ty - from.ty) * k,
+        s: from.s + (target.s - from.s) * k,
+      });
+      if (t < 1) {
+        animReqRef.current = requestAnimationFrame(step);
+      } else {
+        animReqRef.current = null;
+      }
+    };
+    animReqRef.current = requestAnimationFrame(step);
+  };
   // small pop animation on mount
   const [poping, setPoping] = useState(true);
   // форс-показ узла после клика, даже если фильтр скрывает его контент
@@ -154,7 +194,9 @@ export const RadarBoard: FC<RadarBoardProps> = ({
             if (nodeToCenter) {
               const tx = fixedWidth / 2 - nodeToCenter.cx * target;
               const ty = fixedHeight / 2 - nodeToCenter.cy * target;
-              return { tx: tx, ty, s: target };
+              // плавная анимация к целевому состоянию
+              animateTo({ tx, ty, s: target });
+              return prev; // состояние обновится через анимацию
             }
           }
         } catch (e) {
@@ -242,7 +284,8 @@ export const RadarBoard: FC<RadarBoardProps> = ({
                 const targetScale = SCALE_1;
                 const tx = fixedWidth / 2 - best.cx * targetScale;
                 const ty = fixedHeight / 2 - best.cy * targetScale;
-                return { tx: tx, ty, s: targetScale };
+                animateTo({ tx, ty, s: targetScale });
+                return prev;
               }
             }
           } catch (e) {
@@ -262,9 +305,10 @@ export const RadarBoard: FC<RadarBoardProps> = ({
               const node = nodes.find((n) => n.id === selectedId);
               if (node) {
                 const targetScale = 1;
-                const tx = fixedWidth / 2 - node.cx * targetScale;
+                const tx = fixedWidth / 2 - node.cx * targetScale - 250;
                 const ty = fixedHeight / 2 - node.cy * targetScale;
-                return { tx: tx - 250, ty, s: targetScale };
+                animateTo({ tx, ty, s: targetScale });
+                return prev;
               }
             }
           } catch (e) {
@@ -476,10 +520,10 @@ export const RadarBoard: FC<RadarBoardProps> = ({
     const wrapper = (board.parentElement as HTMLElement) || board;
     const wrapperRect = wrapper.getBoundingClientRect();
 
-    const tx = wrapperRect.width / 2 - node.cx * targetScale;
+    const tx = wrapperRect.width / 2 - node.cx * targetScale - 250;
     const ty = wrapperRect.height / 2 - node.cy * targetScale;
 
-    setTransform({ tx: tx - 250, ty, s: targetScale });
+    animateTo({ tx, ty, s: targetScale });
     // форсируем видимость кликнутого узла на уровне 2/3
     setForceVisibleId(node.id);
     // If modal for this node is already open, don't reopen it again.
