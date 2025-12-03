@@ -49,6 +49,8 @@ export const RadarBoard: FC<RadarBoardProps> = ({
   const [transform, setTransform] = useState({ tx: 0, ty: 0, s: 1 });
   // small pop animation on mount
   const [poping, setPoping] = useState(true);
+  // форс-показ узла после клика, даже если фильтр скрывает его контент
+  const [forceVisibleId, setForceVisibleId] = useState<string | null>(null);
 
   // фиксированный размер шрифта для всех меток (используем в стилях ниже)
 
@@ -61,6 +63,7 @@ export const RadarBoard: FC<RadarBoardProps> = ({
   useEffect(() => {
     if (typeof resetZoomTrigger === "number") {
       setTransform({ tx: 0, ty: 0, s: 1 });
+      setForceVisibleId(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resetZoomTrigger]);
@@ -72,6 +75,34 @@ export const RadarBoard: FC<RadarBoardProps> = ({
 
   const SCALE_1 = ZOOM_DIAMETER_1 / BASE_DIAMETER;
   const SCALE_2 = ZOOM_DIAMETER_2 / BASE_DIAMETER;
+
+  // Высота доски: нужна для стабильного центрирования по Y
+  const computeBoardHeight = (nodesList: PositionedNode[]) => {
+    if (!nodesList || nodesList.length === 0) return 0;
+    const radius = diameter / 2;
+    const filterSetLocal = filterSet; // reuse current filter set
+    const visibleNodes = (zoomLevel > 1
+      ? nodesList.filter((node) => {
+          const content = getNodeContent(node);
+          const hasContent = Array.isArray(content) && content.length > 0;
+          const isSelected = selectedId === node.id;
+          const isForced = forceVisibleId === node.id;
+          return hasContent || isSelected || isForced;
+        })
+      : nodesList.filter(
+          (node) =>
+            !(
+              node.id === "tg-channels" &&
+              filterSetLocal.has("media") &&
+              !filterSetLocal.has("tg")
+            )
+        )) as PositionedNode[];
+    const maxBottom = visibleNodes.reduce(
+      (acc, n) => Math.max(acc, n.cy + radius),
+      0
+    );
+    return Math.ceil(maxBottom + 20);
+  };
 
   // zoom in: 1 -> SCALE_1 -> SCALE_2 (stop at SCALE_2)
   useEffect(() => {
@@ -89,12 +120,11 @@ export const RadarBoard: FC<RadarBoardProps> = ({
         try {
           const board = boardRef?.current;
           if (board && nodes && nodes.length) {
-            const wrapper = (board.parentElement as HTMLElement) || board;
-            const wrapperRect = wrapper.getBoundingClientRect();
+            const fixedWidth = 1440; // стабильная ширина для логики зума
+            const fixedHeight = computeBoardHeight(nodes);
 
-            // content center in content coordinates (what is under screen center)
-            const centerScreenX = wrapperRect.width / 2;
-            const centerScreenY = wrapperRect.height / 2;
+            const centerScreenX = fixedWidth / 2;
+            const centerScreenY = fixedHeight / 2;
             const contentCenterX = (centerScreenX - prev.tx) / prev.s;
             const contentCenterY = (centerScreenY - prev.ty) / prev.s;
 
@@ -115,7 +145,7 @@ export const RadarBoard: FC<RadarBoardProps> = ({
             let nodeToCenter: PositionedNode | undefined = undefined;
             if (
               best &&
-              bestDist < Math.max(wrapperRect.width, wrapperRect.height) * 0.5
+              bestDist < Math.max(fixedWidth, fixedHeight) * 0.5
             ) {
               nodeToCenter = best;
             } else if (selectedId) {
@@ -123,8 +153,8 @@ export const RadarBoard: FC<RadarBoardProps> = ({
             }
 
             if (nodeToCenter) {
-              const tx = wrapperRect.width / 2 - nodeToCenter.cx * target;
-              const ty = wrapperRect.height / 2 - nodeToCenter.cy * target;
+              const tx = fixedWidth / 2 - nodeToCenter.cx * target;
+              const ty = fixedHeight / 2 - nodeToCenter.cy * target;
               return { tx: tx, ty, s: target };
             }
           }
@@ -189,12 +219,10 @@ export const RadarBoard: FC<RadarBoardProps> = ({
           try {
             const board = boardRef?.current;
             if (board && nodes && nodes.length) {
-              const wrapper = (board.parentElement as HTMLElement) || board;
-              const wrapperRect = wrapper.getBoundingClientRect();
-
-              // центр экрана в координатах контента
-              const centerScreenX = wrapperRect.width / 2;
-              const centerScreenY = wrapperRect.height / 2;
+              const fixedWidth = 1440;
+              const fixedHeight = computeBoardHeight(nodes);
+              const centerScreenX = fixedWidth / 2;
+              const centerScreenY = fixedHeight / 2;
               const contentCenterX = (centerScreenX - prev.tx) / prev.s;
               const contentCenterY = (centerScreenY - prev.ty) / prev.s;
 
@@ -213,8 +241,8 @@ export const RadarBoard: FC<RadarBoardProps> = ({
 
               if (best) {
                 const targetScale = SCALE_1;
-                const tx = wrapperRect.width / 2 - best.cx * targetScale;
-                const ty = wrapperRect.height / 2 - best.cy * targetScale;
+                const tx = fixedWidth / 2 - best.cx * targetScale;
+                const ty = fixedHeight / 2 - best.cy * targetScale;
                 return { tx: tx, ty, s: targetScale };
               }
             }
@@ -230,13 +258,13 @@ export const RadarBoard: FC<RadarBoardProps> = ({
           try {
             const board = boardRef?.current;
             if (board && selectedId) {
-              const wrapper = (board.parentElement as HTMLElement) || board;
-              const wrapperRect = wrapper.getBoundingClientRect();
+              const fixedWidth = 1440;
+              const fixedHeight = computeBoardHeight(nodes);
               const node = nodes.find((n) => n.id === selectedId);
               if (node) {
                 const targetScale = 1;
-                const tx = wrapperRect.width / 2 - node.cx * targetScale;
-                const ty = wrapperRect.height / 2 - node.cy * targetScale;
+                const tx = fixedWidth / 2 - node.cx * targetScale;
+                const ty = fixedHeight / 2 - node.cy * targetScale;
                 return { tx: tx - 250, ty, s: targetScale };
               }
             }
@@ -391,7 +419,8 @@ export const RadarBoard: FC<RadarBoardProps> = ({
     })();
 
     // Фильтрация по уровню зума:
-    // level 2: показываем только ключевые медиа-активы и все телеграм-каналы
+    // level 2: показываем только ключевые медиа-активы и телеграм-каналы,
+    //          но для специального круга 'tg-channels' оставляем только 3 канала
     // level 3: показываем всё из manualLayout
     let layoutItems = layout.filter((it) => {
       if (level === 3) return true;
@@ -402,6 +431,13 @@ export const RadarBoard: FC<RadarBoardProps> = ({
       }
       return false;
     });
+
+    // На уровне 2 в круге со всеми телеграм-каналами показываем только три
+    if (level === 2 && node.id === "tg-channels") {
+      const tgOnly = layoutItems.filter((it) => it.type === "telegram");
+      const firstThree = tgOnly.slice(0, 3);
+      layoutItems = firstThree;
+    }
 
     // allowed types согласно фильтрам
     const allowedTypes: DistributedItem["type"][] = (() => {
@@ -423,14 +459,8 @@ export const RadarBoard: FC<RadarBoardProps> = ({
       manual: true,
     }));
 
-    const filtered = mapped.filter((it) => {
-      if (!allowedTypes.includes(it.type)) return false;
-      if (!filterSet.has("warm")) return true;
-      const key = String(it.text).trim().toLowerCase();
-      return warmSet.has(key);
-    });
-
-    return filtered;
+    // Тёплый фильтр не скрывает элементы — только подсвечивает.
+    return mapped.filter((it) => allowedTypes.includes(it.type));
   };
 
   const handleClick = (node: PositionedNode) => {
@@ -451,6 +481,8 @@ export const RadarBoard: FC<RadarBoardProps> = ({
     const ty = wrapperRect.height / 2 - node.cy * targetScale;
 
     setTransform({ tx: tx - 250, ty, s: targetScale });
+    // форсируем видимость кликнутого узла на уровне 2/3
+    setForceVisibleId(node.id);
     // If modal for this node is already open, don't reopen it again.
     if (selectedId === node.id) return;
 
@@ -464,17 +496,15 @@ export const RadarBoard: FC<RadarBoardProps> = ({
         className={styles["radar-board"]}
         ref={boardRef}
         style={{
+          height: `${computeBoardHeight(nodes)}px`,
           transform: `translate(${transform.tx}px, ${transform.ty}px) scale(${transform.s})`,
           cursor: transform.s > 1 ? "grab" : "auto",
         }}
         onMouseDown={handleMouseDown}
       >
         {(zoomLevel > 1
-          ? // при приближении: показываем только те узлы, у которых есть вычисленный контент
-            nodes.filter((node) => {
-              const content = getNodeContent(node);
-              return Array.isArray(content) && content.length > 0;
-            })
+          ? // на уровнях 2/3 не скрываем круги вовсе
+            nodes
           : // обзор (level 1): скрываем только специальный `tg-channels`, если выбран только media
             nodes.filter(
               (node) =>

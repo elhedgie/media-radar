@@ -134,15 +134,15 @@ export const manualLayout: Record<string, ManualLayoutItem[]> = {
 
   // Новостные Telegram-каналы (включены имена популярных каналов)
   "tg-channels": [
-    { text: "Прямой Эфир", type: "telegram", x: 0, y: 75 },
-    { text: "Топор Live", type: "telegram", x: 38, y: 59 },
+    { text: "Прямой Эфир", type: "telegram", x: 0, y: -67 },
+    { text: "Топор Live", type: "telegram", x: -69, y: -20 },
     { text: "Mash", type: "telegram", x: 64, y: 29 },
     { text: "РИА Новости", type: "telegram", x: 69, y: -20 },
     { text: "ТАСС", type: "telegram", x: 53, y: -46 },
     { text: "Readovka", type: "telegram", x: 10, y: -27 },
-    { text: "Раньше всех. Ну почти", type: "telegram", x: 0, y: -67 },
+    { text: "Раньше всех. Ну почти", type: "telegram", x: 0, y: 75 },
     { text: "Правдивости", type: "telegram", x: -53, y: -46 },
-    { text: "Baza", type: "telegram", x: -69, y: -20 },
+    { text: "Baza", type: "telegram", x: 38, y: 59 },
     { text: "Осторожно, Новости", type: "telegram", x: -34, y: 29 },
     { text: "SHOT", type: "telegram", x: -38, y: 59 },
   ],
