@@ -81,22 +81,24 @@ export const RadarBoard: FC<RadarBoardProps> = ({
     if (!nodesList || nodesList.length === 0) return 0;
     const radius = diameter / 2;
     const filterSetLocal = filterSet; // reuse current filter set
-    const visibleNodes = (zoomLevel > 1
-      ? nodesList.filter((node) => {
-          const content = getNodeContent(node);
-          const hasContent = Array.isArray(content) && content.length > 0;
-          const isSelected = selectedId === node.id;
-          const isForced = forceVisibleId === node.id;
-          return hasContent || isSelected || isForced;
-        })
-      : nodesList.filter(
-          (node) =>
-            !(
-              node.id === "tg-channels" &&
-              filterSetLocal.has("media") &&
-              !filterSetLocal.has("tg")
-            )
-        )) as PositionedNode[];
+    const visibleNodes = (
+      zoomLevel > 1
+        ? nodesList.filter((node) => {
+            const content = getNodeContent(node);
+            const hasContent = Array.isArray(content) && content.length > 0;
+            const isSelected = selectedId === node.id;
+            const isForced = forceVisibleId === node.id;
+            return hasContent || isSelected || isForced;
+          })
+        : nodesList.filter(
+            (node) =>
+              !(
+                node.id === "tg-channels" &&
+                filterSetLocal.has("media") &&
+                !filterSetLocal.has("tg")
+              )
+          )
+    ) as PositionedNode[];
     const maxBottom = visibleNodes.reduce(
       (acc, n) => Math.max(acc, n.cy + radius),
       0
@@ -143,10 +145,7 @@ export const RadarBoard: FC<RadarBoardProps> = ({
 
             // if no good candidate found, fallback to selectedId
             let nodeToCenter: PositionedNode | undefined = undefined;
-            if (
-              best &&
-              bestDist < Math.max(fixedWidth, fixedHeight) * 0.5
-            ) {
+            if (best && bestDist < Math.max(fixedWidth, fixedHeight) * 0.5) {
               nodeToCenter = best;
             } else if (selectedId) {
               nodeToCenter = nodes.find((n) => n.id === selectedId);

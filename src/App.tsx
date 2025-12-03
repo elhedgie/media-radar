@@ -1,6 +1,10 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import styles from "./App.module.css";
-import { holdingsLevelOne, type HoldingNode, tgChannels } from "./data/holdings";
+import {
+  holdingsLevelOne,
+  type HoldingNode,
+  tgChannels,
+} from "./data/holdings";
 import { fixedPositions } from "./data/fixedPositions";
 import type { PositionedNode } from "./types";
 import { RadarBoard } from "./components/RadarBoard";
@@ -15,7 +19,9 @@ export default function App() {
   const nodesRef = useRef<PositionedNode[]>([]);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState<string[]>(["all"]);
-  const [selectedHolding, setSelectedHolding] = useState<HoldingNode | null>(null);
+  const [selectedHolding, setSelectedHolding] = useState<HoldingNode | null>(
+    null
+  );
   const [resetZoomTrigger, _setResetZoomTrigger] = useState(0);
   const [zoomInTrigger, setZoomInTrigger] = useState(0);
   const [zoomOutTrigger, setZoomOutTrigger] = useState(0);
@@ -45,7 +51,10 @@ export default function App() {
   ];
 
   const activeSet = new Set(activeFilter);
-  const filterOptions = baseOptions.map((opt) => ({ ...opt, active: activeSet.has(opt.id) }));
+  const filterOptions = baseOptions.map((opt) => ({
+    ...opt,
+    active: activeSet.has(opt.id),
+  }));
 
   const handleToggleFilterOption = (id: string) => {
     setActiveFilter((prev) => {
