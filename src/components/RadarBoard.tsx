@@ -606,6 +606,18 @@ export const RadarBoard: FC<RadarBoardProps> = ({
             nameMaxWidth / (Math.max(1, node.name.length) * approxCharWidth)
           );
           const nameFont = Math.max(minFont, Math.min(baseFont, desiredFont));
+          // Чтобы при зуме визуальный кегль оставался примерно тем же,
+          // уменьшаем font-size пропорционально текущему масштабу.
+          // Меняем кегль мягче: компенсируем зум не полностью (например, ~60%),
+          // чтобы глаз не замечал скачков, но текст не раздувался.
+          const compensate = 1 + Math.max(0, (transform.s || 1) - 1) * 0.8;
+          const nameFontSizePx =
+            zoomLevel === 1
+              ? baseFont
+              : Math.max(
+                  minFont,
+                  Math.min(baseFont, Math.floor(nameFont / compensate))
+                );
 
           return (
             <div
@@ -633,12 +645,13 @@ export const RadarBoard: FC<RadarBoardProps> = ({
                   zIndex: 2,
                   display: "inline-block",
                   maxWidth: `${nameMaxWidth}px`,
-                  fontSize: `${zoomLevel === 1 ? 14 : nameFont}px`,
+                  fontSize: `${nameFontSizePx}px`,
                   fontWeight: zoomLevel === 1 ? 600 : undefined,
                   whiteSpace: zoomLevel === 1 ? "normal" : "nowrap",
                   overflow: "visible",
                   textOverflow: "clip",
                   textAlign: "center",
+                  transition: "font-size 220ms ease", // смягчить смену кегля
                 }}
                 title={node.name}
               >

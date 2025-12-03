@@ -53,12 +53,12 @@ export const manualLayout: Record<string, ManualLayoutItem[]> = {
     { text: "Sputnik", type: "asset", x: -35, y: -61 },
     { text: "Russia Today", type: "asset", x: 61, y: -35 },
     { text: "РИА Новости", type: "telegram", x: 10, y: -20 },
-    { text: "Маргарита Симоньян", type: "telegram", x: -41, y: 25 },
-    { text: "Радио Спутник", type: "telegram", x: 35, y: 61 },
+    { text: "Маргарита Симоньян", type: "telegram", x: -41, y: 35 },
+    { text: "Радио Спутник", type: "telegram", x: 35, y: 51 },
     { text: "RT на русском", type: "telegram", x: 0, y: 75 },
     { text: "Прайм", type: "asset", x: -50, y: 61 },
     { text: "Arctic.ru", type: "asset", x: 71, y: 25 },
-    { text: "ИноСМИ", type: "asset", x: 30, y: 35 },
+    { text: "ИноСМИ", type: "asset", x: 30, y: 20 },
     { text: "Baltnews", type: "asset", x: -61, y: -35 },
     { text: "Украина.ру", type: "asset", x: 35, y: -61 },
   ],
@@ -70,36 +70,41 @@ export const manualLayout: Record<string, ManualLayoutItem[]> = {
   ],
 
   rambler: [
-    { text: "Lenta.ru", type: "asset", x: 69, y: 12 },
-    { text: "Газета.ru", type: "asset", x: 45, y: 54 },
+    { text: "Лента.ру", type: "asset", x: 69, y: 12 },
+    { text: "Газета.ru", type: "asset", x: 61, y: -25 },
+
     { text: "Лента дня", type: "telegram", x: 0, y: 70 }, // x = 0, но |y| большое
-    { text: "Лента добра", type: "telegram", x: -45, y: 54 },
-    { text: "Газета.ру", type: "telegram", x: -69, y: 12 },
+    { text: "Лента добра", type: "telegram", x: -40, y: -64 },
+    { text: "Газета.ру", type: "telegram", x: -69, y: 22 },
     { text: "Чемпионат", type: "asset", x: -61, y: -35 },
-    { text: "Секрет Фирмы", type: "asset", x: -24, y: -66 },
+    { text: "Секрет Фирмы", type: "asset", x: -36, y: 46 },
     { text: "Ferra.ru", type: "asset", x: 24, y: -66 },
-    { text: "Motor.ru", type: "asset", x: 61, y: -35 },
+    { text: "Motor.ru", type: "asset", x: 45, y: 54 },
   ],
 
   shkulev: [
     { text: "E1.ru", type: "asset", x: 69, y: 22 },
-    { text: "Marie Claire", type: "asset", x: 49, y: 51 },
-    { text: "NGS.ru", type: "asset", x: 0, y: 70 }, // x = 0, |y| большое
+    { text: "Фонтанка", type: "asset", x: 0, y: -70 },
+    { text: "NGS.ru", type: "asset", x: 0, y: 70 },
+
+    // x = 0, |y| большое
     { text: "E1.ru", type: "telegram", x: -49, y: 51 },
     { text: "НГС.ру", type: "telegram", x: -69, y: 22 },
     { text: "theGirl", type: "asset", x: -49, y: -51 },
-    { text: "Фонтанка", type: "asset", x: 0, y: -70 }, // x = 0, |y| большое
+    { text: "Marie Claire", type: "asset", x: 49, y: 51 },
+    // x = 0, |y| большое
     { text: "Psychologies.ru", type: "asset", x: 49, y: -51 },
   ],
 
   rbc: [
     { text: "RBC.ru", type: "asset", x: 69, y: 12 },
+
+    { text: "РБК", type: "telegram", x: -69, y: 12 },
+    { text: "РБК Крипто", type: "telegram", x: -45, y: -54 },
+    { text: "Сам ты инвестор", type: "telegram", x: 45, y: -34 },
     { text: "РБК ТВ", type: "asset", x: 45, y: 44 },
     { text: "РБК Нац.проекты", type: "asset", x: 0, y: 70 }, // x = 0, |y| большое
     { text: "РБК Тренды", type: "asset", x: -45, y: 44 },
-    { text: "РБК", type: "telegram", x: -69, y: 12 },
-    { text: "РБК Крипто", type: "telegram", x: -45, y: -54 },
-    { text: "Сам ты инвестор", type: "telegram", x: 45, y: -54 },
   ],
 
   "news-media": [
@@ -111,25 +116,26 @@ export const manualLayout: Record<string, ManualLayoutItem[]> = {
   ],
 
   kommersant: [
-    { text: "Коммерсантъ", type: "asset", x: 0, y: 70 },
-    { text: "Коммерсантъ FM", type: "telegram", x: 57, y: -22 },
+    { text: "Коммерсантъ", type: "asset", x: -37, y: 52 },
+    { text: "Коммерсантъ", type: "telegram", x: -47, y: -32 },
+    { text: "Коммерсантъ FM", type: "telegram", x: 47, y: -25 },
     { text: "Коммерсантъ WEEKEND", type: "asset", x: 31, y: 27 },
-    { text: "Коммерсантъ АВТОПИЛОТ", type: "asset", x: -41, y: -57 },
-    { text: "Коммерсантъ ДЕНЬГИ", type: "asset", x: -47, y: 42 },
+    { text: "Коммерсантъ АВТОПИЛОТ", type: "asset", x: -11, y: -67 },
+    { text: "Коммерсантъ ДЕНЬГИ", type: "asset", x: 20, y: 70 },
   ],
 
   kp: [
-    { text: "Комсомольская правда", type: "asset", x: 0, y: -56 },
-    { text: "Комсомольская Правда", type: "telegram", x: 0, y: 56 },
+    { text: "Комсомольская правда", type: "asset", x: -20, y: -56 },
+    { text: "Комсомольская Правда", type: "telegram", x: 20, y: 56 },
   ],
 
   "msk-media": [
     { text: "Москва 24", type: "asset", x: 0, y: 70 },
+    { text: "Москва 24", type: "telegram", x: 0, y: -70 },
+    { text: "Сити Москва 24", type: "telegram", x: -61, y: 35 },
+    { text: "Москва FM", type: "telegram", x: -61, y: -35 },
     { text: "АГН Москва", type: "asset", x: 61, y: 35 },
     { text: "Москва FM", type: "asset", x: 61, y: -35 },
-    { text: "Москва 24", type: "telegram", x: 0, y: -70 },
-    { text: "Москва FM", type: "telegram", x: -61, y: -35 },
-    { text: "Сити Москва 24", type: "telegram", x: -61, y: 35 },
   ],
 
   // Новостные Telegram-каналы (включены имена популярных каналов)

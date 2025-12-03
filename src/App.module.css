@@ -256,8 +256,10 @@
 
 /* Pop animation on initial mount: slight grow then settle */
 .radar-node--pop {
-  animation: radar-pop 700ms cubic-bezier(.22,.9,.33,1) both;
+  animation: radar-pop 10000ms cubic-bezier(.22,.9,.33,1) both;
 }
+
+
 
 @keyframes radar-pop {
   0% {
