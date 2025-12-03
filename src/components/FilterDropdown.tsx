@@ -58,7 +58,11 @@ export const FilterDropdown: FC<FilterDropdownProps> = ({
                 key={option.id}
                 role="button"
                 onClick={() => onToggleOption && onToggleOption(option.id)}
-                style={{ display: "flex", justifyContent: "space-between", cursor: "pointer" }}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  cursor: "pointer",
+                }}
               >
                 <span>{option.label}</span>
                 <span className={styles["filter-dot"]}>

@@ -7,7 +7,6 @@ import {
 } from "./data/holdings";
 import type { PositionedNode } from "./types";
 import { RadarBoard } from "./components/RadarBoard";
-// DetailsDrawer temporarily unused
 import { DetailsDrawer } from "./components/DetailsDrawer";
 import { AppHeader } from "./components/AppHeader";
 
@@ -15,36 +14,44 @@ const DIAMETER = 205;
 const GAP = 18;
 const MARGIN = 40;
 
+// Виртуальная ширина, в которой считаем раскладку ВСЕГДА
+const LAYOUT_WIDTH = 1440;
+
 export default function App() {
   const boardRef = useRef<HTMLDivElement | null>(null);
   const [nodes, setNodes] = useState<PositionedNode[]>([]);
   const nodesRef = useRef<PositionedNode[]>([]);
+
+  // какая ширина используется для "виртуальной" раскладки (обычно 1440)
+  const layoutWidthRef = useRef<number | null>(null);
+  // текущий сдвиг (чтобы центрировать виртуальную раскладку в реальном контейнере)
+  const offsetRef = useRef<{ dx: number; dy: number }>({ dx: 0, dy: 0 });
+
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  // activeFilter: array of selected filter ids, e.g. ['warm','media']
-  // default is ['all'] which means both СМИ и Telegram
   const [activeFilter, setActiveFilter] = useState<string[]>(["all"]);
   const [selectedHolding, setSelectedHolding] = useState<HoldingNode | null>(
     null
   );
-  // триггер для сброса зума в RadarBoard
   const [resetZoomTrigger, _setResetZoomTrigger] = useState(0);
-  // триггеры для кнопок зума
   const [zoomInTrigger, setZoomInTrigger] = useState(0);
   const [zoomOutTrigger, setZoomOutTrigger] = useState(0);
 
   // -----------------------
-  // 1. СТАРТОВЫЙ РАНДОМ
+  // 1. СТАРТОВЫЙ ЛЭЙАУТ (в виртуальных координатах)
   // -----------------------
   const createInitial = (w: number, h: number) => {
     const res: PositionedNode[] = [];
     const r = DIAMETER / 2;
 
-    // Grid-based initial placement to avoid heavy initial overlaps.
+    // тут w — уже виртуальная ширина (не больше 1440)
+    const effW = w;
+    const xOffset = 0;
+
     const n = holdingsLevelOne.length;
     const cols = Math.ceil(Math.sqrt(n));
     const rows = Math.ceil(n / cols);
 
-    const availableW = Math.max(1, w - 2 * (MARGIN + r));
+    const availableW = Math.max(1, effW - 2 * (MARGIN + r));
     const availableH = Math.max(1, h - 2 * (MARGIN + r));
     const xStep = availableW / (cols + 1);
     const yStep = availableH / (rows + 1);
@@ -52,7 +59,7 @@ export default function App() {
     for (let i = 0; i < n; i++) {
       const col = i % cols;
       const row = Math.floor(i / cols);
-      const cx = MARGIN + r + xStep * (col + 1);
+      const cx = xOffset + MARGIN + r + xStep * (col + 1);
       const cy = MARGIN + r + yStep * (row + 1);
       res.push({
         ...holdingsLevelOne[i],
@@ -67,9 +74,8 @@ export default function App() {
   };
 
   // -----------------------
-  // 2. SYNCHRONOUS RELAXATION (compute final positions immediately)
+  // 2. СИНХРОННАЯ РЕЛАКСАЦИЯ (в виртуальной области w × h)
   // -----------------------
-  // Compute final positions synchronously (no animation) and return settled array.
   const relaxPositions = (
     srcList: PositionedNode[],
     w: number,
@@ -78,7 +84,9 @@ export default function App() {
     const r = DIAMETER / 2;
     const minDist = DIAMETER + GAP;
 
-    // clone nodes so we don't mutate external refs
+    const effW = w;
+    const xOffset = 0;
+
     const list: PositionedNode[] = srcList.map((n) => ({ ...n }));
 
     let iteration = 0;
@@ -88,7 +96,7 @@ export default function App() {
     while (iteration < MAX_ITER) {
       let maxSpeed = 0;
 
-      // forces
+      // силы отталкивания
       for (let i = 0; i < list.length; i++) {
         for (let j = i + 1; j < list.length; j++) {
           const A = list[i];
@@ -113,7 +121,7 @@ export default function App() {
         }
       }
 
-      // integrate
+      // интеграция
       for (const n of list) {
         const MAX_V = 12;
         if (n.vx && n.vx > MAX_V) n.vx = MAX_V;
@@ -130,8 +138,8 @@ export default function App() {
         const speed = Math.hypot(n.vx || 0, n.vy || 0);
         if (speed > maxSpeed) maxSpeed = speed;
 
-        const minX = MARGIN + r;
-        const maxX = w - MARGIN - r;
+        const minX = xOffset + MARGIN + r;
+        const maxX = xOffset + effW - MARGIN - r;
         const minY = MARGIN + r;
         const maxY = h - MARGIN - r;
 
@@ -149,62 +157,67 @@ export default function App() {
   };
 
   // -----------------------
-  // 3. МЯГКАЯ РЕАКЦИЯ НА RESIZE
-  // -----------------------
-  const gentleResizeAdjust = (w: number, h: number) => {
-    const r = DIAMETER / 2;
-
-    const list = nodesRef.current;
-    let changed = false;
-
-    for (const n of list) {
-      const minX = MARGIN + r;
-      const maxX = w - MARGIN - r;
-      const minY = MARGIN + r;
-      const maxY = h - MARGIN - r;
-
-      if (n.cx < minX) {
-        n.cx = minX;
-        changed = true;
-      }
-      if (n.cx > maxX) {
-        n.cx = maxX;
-        changed = true;
-      }
-      if (n.cy < minY) {
-        n.cy = minY;
-        changed = true;
-      }
-      if (n.cy > maxY) {
-        n.cy = maxY;
-        changed = true;
-      }
-    }
-
-    if (changed) setNodes([...list]);
-  };
-
-  // -----------------------
-  // 4. ИНИЦИАЛИЗАЦИЯ
+  // 3. ИНИЦИАЛИЗАЦИЯ + РЕСАЙЗ
   // -----------------------
   useLayoutEffect(() => {
     if (!boardRef.current) return;
 
     const rect = boardRef.current.getBoundingClientRect();
-    const w = rect.width;
-    const h = rect.height;
+    const containerW = rect.width;
+    const containerH = rect.height;
 
-    // создаём стартовый layout один раз
-    const initial = createInitial(w, h);
-    // рассчитываем финальные позиции синхронно и ставим их сразу
-    const settled = relaxPositions(initial, w, h);
-    nodesRef.current = settled;
-    setNodes([...settled]);
+    // Виртуальная ширина раскладки (но не больше реальной — чтобы на узких экранах не вылезать)
+    const layoutW = Math.min(LAYOUT_WIDTH, containerW);
+    layoutWidthRef.current = layoutW;
 
-    // следим за изменениями размера
+    // Считаем раскладку в ВИРТУАЛЬНЫХ координатах [0..layoutW]
+    const initialVirtual = createInitial(1360, 634);
+    console.log("Initial virtual positions:", layoutW);
+    const settledVirtual = relaxPositions(initialVirtual, 1360, 634);
+
+    // Центрируем виртуальную область внутри реального контейнера
+    const dx = (containerW - layoutW) / 2;
+    const dy = 0; // если захочешь по вертикали центрировать — можно тоже что-то посчитать
+    offsetRef.current = { dx, dy };
+
+    const projected = settledVirtual.map((n) => ({
+      ...n,
+      cx: n.cx + dx,
+      cy: n.cy + dy,
+    }));
+
+    nodesRef.current = projected;
+    setNodes([...projected]);
+
+    // При ресайзе НИЧЕГО заново не считаем, только сдвигаем всё целиком
     const ro = new ResizeObserver(() => {
-      const rect2 = boardRef.current!.getBoundingClientRect();
-      gentleResizeAdjust(rect2.width, rect2.height);
+      if (!boardRef.current || layoutWidthRef.current == null) return;
+
+      const rect2 = boardRef.current.getBoundingClientRect();
+      const newContainerW = rect2.width;
+      const newContainerH = rect2.height;
+
+      const layoutW2 = layoutWidthRef.current;
+
+      // новый сдвиг, чтобы центрировать ту же виртуальную ширину
+      const newDx = (newContainerW - layoutW2) / 2;
+      const newDy = 0;
+
+      const { dx: prevDx, dy: prevDy } = offsetRef.current;
+      const ddx = newDx - prevDx;
+      const ddy = newDy - prevDy;
+
+      if (ddx !== 0 || ddy !== 0) {
+        const shifted = nodesRef.current.map((n) => ({
+          ...n,
+          cx: n.cx + ddx,
+          cy: n.cy + ddy,
+        }));
+        nodesRef.current = shifted;
+        setNodes([...shifted]);
+      }
+
+      offsetRef.current = { newDx, newDy } as any; // маленький хак, чтобы не заводить новый тип
     });
 
     ro.observe(boardRef.current);
@@ -212,18 +225,45 @@ export default function App() {
     return () => ro.disconnect();
   }, []);
 
-  // Когда изменяется набор фильтров, перераспределяем узлы, чтобы убрать возможные перекрытия
+  // -----------------------
+  // 4. ПЕРЕРАЗМЕЩЕНИЕ ПРИ СМЕНЕ ФИЛЬТРОВ
+  // -----------------------
   useEffect(() => {
     if (!boardRef.current) return;
+    if (layoutWidthRef.current == null) return;
+
     const rect = boardRef.current.getBoundingClientRect();
-    // пересчитаем позиции синхронно и сразу установим итоговую раскладку
-    const settled = relaxPositions(nodesRef.current, rect.width, rect.height);
-    nodesRef.current = settled;
-    setNodes([...settled]);
-    return;
+    const containerW = rect.width;
+    const containerH = rect.height;
+    const layoutW = layoutWidthRef.current;
+
+    const { dx, dy } = offsetRef.current;
+
+    // переводим текущее состояние в виртуальные координаты (отнимаем сдвиг)
+    const virtual = nodesRef.current.map((n) => ({
+      ...n,
+      cx: n.cx - dx,
+      cy: n.cy - dy,
+    }));
+
+    // пересчитываем раскладку в виртуальной области
+    const relaxedVirtual = relaxPositions(virtual, layoutW, containerH);
+
+    // назад в реальные координаты
+    const projected = relaxedVirtual.map((n) => ({
+      ...n,
+      cx: n.cx + dx,
+      cy: n.cy + dy,
+    }));
+
+    nodesRef.current = projected;
+    setNodes([...projected]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeFilter]);
 
+  // -----------------------
+  // 5. ESC закрывает фильтр/модалку
+  // -----------------------
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -244,7 +284,6 @@ export default function App() {
     { id: "tg", label: "Telegram" },
   ];
 
-  // derive active flag for UI
   const activeSet = new Set(activeFilter);
   const filterOptions = baseOptions.map((opt) => ({
     ...opt,
@@ -254,24 +293,20 @@ export default function App() {
   const handleToggleFilterOption = (id: string) => {
     setActiveFilter((prev) => {
       const s = new Set(prev);
-      // selecting 'all' resets everything
       if (id === "all") return ["all"];
 
-      // remove the 'all' placeholder if present
       s.delete("all");
 
       if (id === "warm") {
         if (s.has("warm")) s.delete("warm");
         else s.add("warm");
       } else if (id === "media" || id === "tg") {
-        // media and tg are mutually exclusive
         if (s.has(id)) s.delete(id);
         else {
           s.delete(id === "media" ? "tg" : "media");
           s.add(id);
         }
       } else {
-        // toggle other options (e.g., private)
         if (s.has(id)) s.delete(id);
         else s.add(id);
       }
@@ -279,7 +314,6 @@ export default function App() {
       if (s.size === 0) return ["all"];
       return Array.from(s);
     });
-    // NOTE: keep dropdown open per UX request
   };
 
   return (
@@ -291,10 +325,8 @@ export default function App() {
           onCloseFilter={() => setIsFilterOpen(false)}
           onZoomIn={() => setZoomInTrigger((t) => t + 1)}
           onZoomOut={() => {
-            // If modal is open, close it and step zoom once (to level 2)
             if (selectedHolding) {
               setSelectedHolding(null);
-              // trigger one zoom-out step in the board
               setZoomOutTrigger((t) => t + 1);
               return;
             }
@@ -308,16 +340,12 @@ export default function App() {
           nodes={nodes}
           diameter={DIAMETER}
           onSelect={(h) => {
-            // Always update modal: if the same holding was selected, briefly
-            // clear selection to force a re-render so users can click the same
-            // item repeatedly and see its data refreshed.
             if (!h) {
               setSelectedHolding(null);
               return;
             }
             if (selectedHolding && selectedHolding.id === h.id) {
               setSelectedHolding(null);
-              // schedule next set to allow state change
               setTimeout(() => setSelectedHolding(h), 0);
             } else {
               setSelectedHolding(h);

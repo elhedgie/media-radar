@@ -33,21 +33,20 @@ export const AppHeader: FC<AppHeaderProps> = ({
     <>
       <header className={styles["app__header"]}>
         <div className={styles["app__header-left"]}>
-          {
-            (() => {
-              const selected = filterOptions.find((o) => o.active)?.label ?? "Все";
-              return (
-                <FilterDropdown
-                  isOpen={isFilterOpen}
-                  onToggle={onToggleFilter}
-                  onClose={onCloseFilter}
-                  options={filterOptions}
-                  onToggleOption={onToggleFilterOption}
-                  selectedLabel={selected}
-                />
-              );
-            })()
-          }
+          {(() => {
+            const selected =
+              filterOptions.find((o) => o.active)?.label ?? "Все";
+            return (
+              <FilterDropdown
+                isOpen={isFilterOpen}
+                onToggle={onToggleFilter}
+                onClose={onCloseFilter}
+                options={filterOptions}
+                onToggleOption={onToggleFilterOption}
+                selectedLabel={selected}
+              />
+            );
+          })()}
         </div>
         <div className={styles["toolbar__zoom"]}>
           <button onClick={onZoomIn} aria-label="Zoom In">

@@ -13,7 +13,8 @@ const fallbackDescription =
 export const DetailsDrawer: FC<DetailsDrawerProps> = ({ holding, onClose }) => {
   if (!holding) return null;
 
-  const isTelegram = (holding.subscribers != null) || ((holding.link || "").includes("t.me"));
+  const isTelegram =
+    holding.subscribers != null || (holding.link || "").includes("t.me");
 
   return (
     <div className={styles["details-overlay"]} role="presentation">
@@ -26,7 +27,8 @@ export const DetailsDrawer: FC<DetailsDrawerProps> = ({ holding, onClose }) => {
           <div>
             {/* Тип записи: пометка Telegram-канал когда есть признаки канала */}
             <h2>{holding.name}</h2>
-            {((holding.subscribers != null) || (holding.link || "").includes("t.me")) && (
+            {(holding.subscribers != null ||
+              (holding.link || "").includes("t.me")) && (
               <p className={styles["details-modal__type"]}>Telegram-канал</p>
             )}
           </div>
@@ -73,11 +75,15 @@ export const DetailsDrawer: FC<DetailsDrawerProps> = ({ holding, onClose }) => {
           <section className={styles["details-stats"]}>
             <div className={styles["details-stat"]}>
               <p className={styles["details-stat-label"]}>Подписчики</p>
-              <p className={styles["details-stat-value"]}>{holding.subscribers ?? "—"}</p>
+              <p className={styles["details-stat-value"]}>
+                {holding.subscribers ?? "—"}
+              </p>
             </div>
             <div className={styles["details-stat"]}>
               <p className={styles["details-stat-label"]}>Средний охват</p>
-              <p className={styles["details-stat-value"]}>{holding.reach ?? "—"}</p>
+              <p className={styles["details-stat-value"]}>
+                {holding.reach ?? "—"}
+              </p>
             </div>
           </section>
 

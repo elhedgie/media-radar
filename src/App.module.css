@@ -196,15 +196,20 @@
   flex: 1;
   min-height: 0;
   display: flex;
+  justify-content: center; /* центрируем доску по горизонтали */
+  background: #ffffff; /* по бокам остаётся белое пространство */
 }
 
 .radar-board {
-  flex: 1;
+  /* фиксированный контейнер: узлы позиционируются относительно него */
   position: relative;
   border-radius: 30px;
   background: #ffffff;
   overflow: hidden;
   min-height: 420px;
+  /* фиксируем ширину 1440px, по бокам будет белое пространство */
+  width: 1440px;
+  margin: 0 auto; /* центрирование */
   transform-origin: 0 0;
   transition: transform 420ms cubic-bezier(.22,.9,.33,1);
 }
