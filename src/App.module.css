@@ -232,6 +232,25 @@
   font-size: 18px;
   transform: translate(-50%, -50%);
   overflow: hidden;
+  /* No transition: nodes placed immediately at final positions */
+  transition: none;
+}
+
+/* Pop animation on initial mount: slight grow then settle */
+.radar-node--pop {
+  animation: radar-pop 700ms cubic-bezier(.22,.9,.33,1) both;
+}
+
+@keyframes radar-pop {
+  0% {
+    transform: translate(-50%, -50%) scale(0.96);
+  }
+  60% {
+    transform: translate(-50%, -50%) scale(1.06);
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+  }
 }
 
 .radar-node--accent {
@@ -252,17 +271,23 @@
 
 .radar-node__item {
   position: absolute;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
   font-weight: 500;
   line-height: 1.2;
   padding: 0.25rem 0.5rem;
   pointer-events: auto;
-  max-width: 140px;
+  max-width: 140px !important;
 
-  /* главное: текст переносится, не обрезается */
-  /* white-space: normal;
+  /* пусть текст переносится внутри ограниченной ширины */
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
   overflow: visible;
   text-overflow: clip;
-  text-align: center; */
+  text-align: center;
 }
 
 .radar-node__item:hover {
@@ -271,19 +296,19 @@
 
 
 .radar-node__item--name {
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 600;
   color: #262628;
 }
 
 .radar-node__item--asset {
-  font-size: 11px;
+  font-size: 7px;
   color: #666;
   font-weight: 500;
 }
 
 .radar-node__item--telegram {
-  font-size: 11px;
+  font-size: 7px;
   color: #475DCA;
   font-weight: 500;
   background: transparent;

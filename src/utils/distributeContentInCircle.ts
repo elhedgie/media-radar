@@ -10,7 +10,19 @@ export interface DistributedItem {
   radius: number; // в px в локальных координатах круга
   fontSize: number;
   maxWidth: number;
+  manual?: boolean;
+  // Прямые смещения в px относительно центра круга — если заданы, рендерер
+  // должен использовать их вместо вычисления по углу/радиусу.
+  offsetX?: number;
+  offsetY?: number;
 }
+
+import { manualPositions, normalizeKey } from "../data/manualPositions";
+
+// Фиксы: единый размер шрифта и ширины для оценки боксов — пользователь
+// просил не рассчитывать ширину/шрифт для каждого элемента индивидуально.
+const DEFAULT_FONT_SIZE = 10;
+const DEFAULT_MAX_WIDTH = 80;
 
 // "Россия 1, Россия 24; Москва 24" -> ["Россия 1","Россия 24","Москва 24"]
 const parseList = (value?: string | null): string[] =>
@@ -68,16 +80,27 @@ const resolveCollisions = (items: DistributedItem[]): DistributedItem[] => {
   const ANGLE_STEP = 10; // шаг сдвига, градусов
 
   for (const item of sorted) {
+    // если элемент помечен как ручной — используем его offset напрямую
+    if (item.manual && typeof item.offsetX === "number" && typeof item.offsetY === "number") {
+      const x = item.offsetX;
+      const y = item.offsetY;
+      const width = item.maxWidth ?? DEFAULT_MAX_WIDTH;
+      const height = estimateHeight(item.text, item.fontSize ?? DEFAULT_FONT_SIZE, width);
+      const box: Box = { x, y, width, height };
+      placed.push({ item, box });
+      continue;
+    }
     let angle = item.angle;
     let attempts = 0;
     let finalBox: Box | null = null;
 
     while (attempts < MAX_ATTEMPTS) {
       const rad = angle * DEG2RAD;
-      const x = item.radius * Math.cos(rad);
-      const y = item.radius * Math.sin(rad);
-      const width = item.maxWidth;
-      const height = estimateHeight(item.text, item.fontSize, item.maxWidth);
+      // если заданы offsetX/offsetY — используем их, иначе считаем по полярным координатам
+      const x = typeof item.offsetX === "number" ? item.offsetX : item.radius * Math.cos(rad);
+      const y = typeof item.offsetY === "number" ? item.offsetY : item.radius * Math.sin(rad);
+      const width = item.maxWidth ?? DEFAULT_MAX_WIDTH;
+      const height = estimateHeight(item.text, item.fontSize ?? DEFAULT_FONT_SIZE, width);
       const candidateBox: Box = { x, y, width, height };
 
       const hasOverlap = placed.some((p) =>
@@ -98,13 +121,14 @@ const resolveCollisions = (items: DistributedItem[]): DistributedItem[] => {
     // но такое при небольшом количестве элементов практически не случится.
     if (!finalBox) {
       const rad = item.angle * DEG2RAD;
-      const x = item.radius * Math.cos(rad);
-      const y = item.radius * Math.sin(rad);
+      const x = typeof item.offsetX === "number" ? item.offsetX : item.radius * Math.cos(rad);
+      const y = typeof item.offsetY === "number" ? item.offsetY : item.radius * Math.sin(rad);
+      const width = item.maxWidth ?? DEFAULT_MAX_WIDTH;
       finalBox = {
         x,
         y,
-        width: item.maxWidth,
-        height: estimateHeight(item.text, item.fontSize, item.maxWidth),
+        width,
+        height: estimateHeight(item.text, item.fontSize ?? DEFAULT_FONT_SIZE, width),
       };
     } else {
       item.angle = angle; // фиксируем новый угол
@@ -140,10 +164,13 @@ export const distributeContentInCircle = (
   const zoomLevel: 2 | 3 = otherAssetsRaw ? 3 : 2;
 
   // внутрь этой зоны НИКОГДА не кладём подписи — здесь живёт название холдинга
-  // 0.6R даёт хороший запас, чтобы даже длинное имя не пересекалось
-  const innerSafeRadius = circleRadius * 0.6;
+  // reserve smaller central area so подписи могут использовать больше внутреннего пространства
+  // уменьшили с 0.6R до 0.35R — это позволяет распределять подписи ближе к центру,
+  // избегая при этом прямого перекрытия названия (название рендерится отдельно)
+  const innerSafeRadius = circleRadius * 0.35;
 
   // внешняя граница для подписей — чтобы текст не упирался в край круга
+  // сдвинули немного внутрь, чтобы подписи не оказывались по самому краю круга
   const outerSafeRadius = circleRadius * 0.9;
 
   const keyAssets = parseList(keyAssetsRaw);
@@ -206,8 +233,10 @@ export const distributeContentInCircle = (
     () => []
   );
 
-  // round-robin — чтобы кольца были заполнены равномерно
-  items.forEach((item, index) => {
+  // распределяем элементы по кольцам. Сначала сортируем по длине (большие элементы
+  // равномерно попадут в разные кольца), затем используем round-robin
+  const sortedItems = [...items].sort((a, b) => b.text.length - a.text.length);
+  sortedItems.forEach((item, index) => {
     const ringIndex = index % ringCount;
     itemsByRing[ringIndex].push(item);
   });
@@ -224,20 +253,20 @@ export const distributeContentInCircle = (
     // базовый размер шрифта для этого кольца
     const baseFontSize = 7;
 
-    // грубая оценка ширины символа для этого шрифта
-    const charWidth = baseFontSize * 0.6;
+    // грубая оценка ширины символа для этого шрифта — немного более консервативная
+    const charWidth = baseFontSize * 0.55;
 
-    // оцениваем "сырые" ширины слов
+    // оцениваем "сырые" ширины слов — уменьшаем минимальную и максимальную ширину
     const rawWidths = ringItems.map((it) => {
       const len = it.text.length || 1;
       // word-wrap по 2 строкам => делим на 1.8
       const approx = (len * charWidth) / 1.8;
-      // ограничим разумным диапазоном
-      return Math.min(140, Math.max(60, approx));
+      // ограничим разумным диапазоном (меньше, чтобы не упираться в край)
+      return Math.min(120, Math.max(40, approx));
     });
 
     const circumference = 2 * Math.PI * r;
-    const gap = 20; // минимальный зазор между подписями по дуге
+    const gap = 12; // минимальный зазор между подписями по дуге
 
     const avgRawWidth = rawWidths.reduce((sum, w) => sum + w, 0) / n;
 
@@ -261,15 +290,41 @@ export const distributeContentInCircle = (
     ringItems.forEach((item, idx) => {
       const angle = startAngle + idx * step;
 
-      result.push({
-        id: item.id,
-        type: item.type,
-        text: item.text,
-        angle,
-        radius: r,
-        fontSize: finalFontSize,
-        maxWidth: finalWidths[idx],
-      });
+      // проверьте, задана ли ручная позиция для этого текста
+      const key = normalizeKey(item.text);
+      const mp = manualPositions[key];
+
+      if (mp) {
+        // при ручной позиции возвращаем смещения напрямую (offsetX/offsetY)
+        result.push({
+          id: item.id,
+          type: item.type,
+          text: item.text,
+          angle: 0,
+          radius: 0,
+          fontSize: DEFAULT_FONT_SIZE,
+          maxWidth: DEFAULT_MAX_WIDTH,
+          manual: true,
+          offsetX: mp.x,
+          offsetY: mp.y,
+        });
+      } else {
+        // вычисляем смещение и возвращаем offsetX/offsetY для ручной подгонки
+        const rad = (angle * Math.PI) / 180;
+        const x = r * Math.cos(rad);
+        const y = r * Math.sin(rad);
+        result.push({
+          id: item.id,
+          type: item.type,
+          text: item.text,
+          angle,
+          radius: r,
+          fontSize: DEFAULT_FONT_SIZE,
+          maxWidth: DEFAULT_MAX_WIDTH,
+          offsetX: x,
+          offsetY: y,
+        });
+      }
     });
   });
 

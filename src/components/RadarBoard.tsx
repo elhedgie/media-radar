@@ -3,14 +3,22 @@ import { useRef, useEffect, useState } from "react";
 import styles from "../App.module.css";
 import type { PositionedNode } from "../types";
 import type { HoldingNode } from "../data/holdings";
-import {
-  distributeContentInCircle,
-  type DistributedItem,
-} from "../utils/distributeContentInCircle";
+import { manualLayout } from "../data/manualLayout";
 import { warmSet } from "../data/warmContacts";
 
 // локальный тип уровня зума (2 или 3)
 type ZoomLevel = 2 | 3;
+
+type DistributedItem = {
+  id: string;
+  type: "asset" | "telegram";
+  text: string;
+  offsetX?: number;
+  offsetY?: number;
+  fontSize?: number;
+  maxWidth?: number;
+  manual?: boolean;
+};
 
 type RadarBoardProps = {
   nodes: PositionedNode[];
@@ -39,6 +47,15 @@ export const RadarBoard: FC<RadarBoardProps> = ({
 }) => {
   // локальное состояние трансформации (tx, ty, scale)
   const [transform, setTransform] = useState({ tx: 0, ty: 0, s: 1 });
+  // small pop animation on mount
+  const [poping, setPoping] = useState(true);
+
+  // фиксированный размер шрифта для всех меток (используем в стилях ниже)
+
+  useEffect(() => {
+    const t = setTimeout(() => setPoping(false), 800);
+    return () => clearTimeout(t);
+  }, []);
 
   // Сброс трансформации при изменении внешнего триггера
   useEffect(() => {
@@ -329,27 +346,15 @@ export const RadarBoard: FC<RadarBoardProps> = ({
   })();
 
   // ---------- получаем контент для ноды при текущем уровне ----------
-  // кеш рассчитанных позиций с меткой времени { ts, items } и флагом locked
-  const contentCacheRef = useRef<
-    Map<string, { ts: number; items: DistributedItem[]; locked?: boolean }>
-  >(new Map());
-  // таймеры для перехода в locked-состояние через 1 секунду
-  const lockTimersRef = useRef<Map<string, number>>(new Map());
 
-  // при размонтировании очищаем таймеры
-  useEffect(() => {
-    return () => {
-      lockTimersRef.current.forEach((id) => clearTimeout(id));
-      lockTimersRef.current.clear();
-    };
-  }, []);
-  // очистка кеша при внешнем триггере (если нужно пересчитать позиции)
-  useEffect(() => {
-    if (typeof resetZoomTrigger === "number") {
-      contentCacheRef.current.clear();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [resetZoomTrigger]);
+  // normalize activeFilter into an array/set so rendering can reference it
+  const filterSet = new Set(
+    Array.isArray(activeFilter)
+      ? activeFilter
+      : typeof activeFilter === "string"
+      ? [activeFilter]
+      : ["all"]
+  );
 
   const getNodeContent = (node: PositionedNode): DistributedItem[] => {
     if (zoomLevel === 1) return [];
@@ -359,82 +364,73 @@ export const RadarBoard: FC<RadarBoardProps> = ({
     // - activeFilter === 'tg'  => show only telegrams for all nodes, except keep full content for `tg-channels`
     // - activeFilter === 'media' => show only assets (suppress telegrams) for all nodes
     // - otherwise => default behaviour
-    const isTgFilter = activeFilter === "tg";
-    const isMediaFilter = activeFilter === "media";
+    // текущие фильтры отражены в allowedTypes ниже
 
-    const otherParam = isTgFilter && node.id !== "tg-channels" ? null : level === 3 ? node.otherAssets : null;
+    // кеш не используем — контент берём напрямую из manualLayout
 
-    // compute params depending on active filter
-    const keyAssetsParamForCompute = isTgFilter && node.id !== "tg-channels" ? "" : node.keyAssets;
-    // default: use node.keyTelegrams (if present)
-    let keyTelegramsParam: string | undefined = node.keyTelegrams;
-    if (isMediaFilter) {
-      // media filter: suppress telegrams everywhere
-      keyTelegramsParam = "";
-    }
+    // Берём статическую раскладку из `manualLayout` — если нет, возвращаем пустой список
+    const layout = manualLayout[node.id] ?? [];
 
-    // special-case: tg-channels should show only first 3 telegrams on level 2
-    if (node.id === "tg-channels" && level === 2) {
-      // prefer explicit keyTelegrams; fall back to otherAssets or keyAssets if absent
-      const source =
-        node.keyTelegrams ?? node.otherAssets ?? node.keyAssets ?? "";
-      const parts = String(source)
+    // Подготовим набор ключевых активов для текущего холдинга
+    const normalize = (s: string) =>
+      String(s)
+        .normalize("NFKC")
+        .replace(/\p{P}/gu, "")
+        .replace(/\s+/g, " ")
+        .trim()
+        .toLowerCase();
+
+    const keyAssetsSet: Set<string> = (() => {
+      const raw = node.keyAssets ? String(node.keyAssets) : "";
+      const parts = raw
         .split(/[;,]/)
         .map((t) => t.trim())
-        .filter(Boolean);
-      keyTelegramsParam = parts.slice(0, 3).join(", ");
-    }
-    // include filter state in cache key so cached positions for different
-    // filter modes do not collide
-    const key = `${node.id}_${level}_${activeFilter ?? "all"}`;
+        .filter(Boolean)
+        .map((t) => normalize(t));
+      return new Set(parts);
+    })();
 
-    // Попытка загрузить из памяти (сначала in-memory cache)
-    const cachedEntry = contentCacheRef.current.get(key);
-    if (cachedEntry) return cachedEntry.items;
-
-    // Попытка загрузить из localStorage — чтобы позиции были стабильны между перезагрузками
-    try {
-      const raw = localStorage.getItem(`media-radar-pos:${key}`);
-      if (raw) {
-        const parsed = JSON.parse(raw) as {
-          ts?: number;
-          items?: DistributedItem[];
-          locked?: boolean;
-        };
-        if (parsed && Array.isArray(parsed.items)) {
-          contentCacheRef.current.set(key, {
-            ts: parsed.ts || Date.now(),
-            items: parsed.items,
-            locked: !!parsed.locked,
-          });
-          return parsed.items;
-        }
+    // Фильтрация по уровню зума:
+    // level 2: показываем только ключевые медиа-активы и все телеграм-каналы
+    // level 3: показываем всё из manualLayout
+    let layoutItems = layout.filter((it) => {
+      if (level === 3) return true;
+      // level === 2
+      if (it.type === "telegram") return true;
+      if (it.type === "asset") {
+        return keyAssetsSet.has(normalize(it.text));
       }
-    } catch (e) {
-      // ignore
-    }
+      return false;
+    });
 
-    const computed = distributeContentInCircle(
-      node.name,
-      keyAssetsParamForCompute,
-      keyTelegramsParam,
-      otherParam,
-      diameter, // базовый диаметр, зум учитывается transform'ом
-      false // includeName=false, имя рендерим в центре
-    );
+    // allowed types согласно фильтрам
+    const allowedTypes: DistributedItem["type"][] = (() => {
+      const hasMedia = filterSet.has("media");
+      const hasTg = filterSet.has("tg");
+      if (hasMedia && !hasTg) return ["asset"];
+      if (hasTg && !hasMedia) return ["telegram"];
+      return ["asset", "telegram"];
+    })();
 
-    // Сохраняем результат сразу и помечаем как locked: true —
-    // это гарантирует, что позиции не будут пересчитаны и не будут "шевелиться"
-    const now = Date.now();
-    const entry = { ts: now, items: computed, locked: true };
-    try {
-      localStorage.setItem(`media-radar-pos:${key}`, JSON.stringify(entry));
-    } catch (e) {
-      // ignore (quota или приватный режим)
-    }
+    const mapped: DistributedItem[] = layoutItems.map((it, idx) => ({
+      id: `${node.id}-${idx}`,
+      type: it.type,
+      text: it.text,
+      offsetX: it.x,
+      offsetY: it.y,
+      fontSize: 11,
+      maxWidth: 100,
+      manual: true,
+    }));
 
-    contentCacheRef.current.set(key, entry);
-    return computed;
+    const filtered = mapped.filter((it) => {
+      if (!allowedTypes.includes(it.type)) return false;
+      if (!filterSet.has("warm")) return true;
+      const key = String(it.text).trim().toLowerCase();
+      return warmSet.has(key);
+    });
+
+    return filtered;
   };
 
   const handleClick = (node: PositionedNode) => {
@@ -473,17 +469,59 @@ export const RadarBoard: FC<RadarBoardProps> = ({
         }}
         onMouseDown={handleMouseDown}
       >
-        {nodes.map((node) => {
+        {(zoomLevel > 1
+          ? // при приближении: показываем только те узлы, у которых есть вычисленный контент
+            nodes.filter((node) => {
+              const content = getNodeContent(node);
+              return Array.isArray(content) && content.length > 0;
+            })
+          : // обзор (level 1): скрываем только специальный `tg-channels`, если выбран только media
+            nodes.filter(
+              (node) =>
+                !(
+                  node.id === "tg-channels" &&
+                  filterSet.has("media") &&
+                  !filterSet.has("tg")
+                )
+            )
+        ).map((node) => {
           const content = getNodeContent(node);
 
           // determine if this node contains any warm contact (for level 1 indicator)
-          const nodeValues: string[] = [];
-          if (node.keyAssets) nodeValues.push(...String(node.keyAssets).split(/[;,]/));
-          if (node.keyTelegrams) nodeValues.push(...String(node.keyTelegrams).split(/[;,]/));
-          if (node.otherAssets) nodeValues.push(...String(node.otherAssets).split(/[;,]/));
-          const hasWarm = nodeValues
-            .map((s) => s.trim().toLowerCase())
-            .some((t) => t && warmSet.has(t));
+          // Behavior:
+          // - if 'media' selected (without 'tg') => check only media fields (keyAssets, otherAssets)
+          // - if 'tg' selected (without 'media') => check only telegrams (keyTelegrams)
+          // - otherwise => check all fields
+          let hasWarm = false;
+          const checkList = (vals?: string | null) =>
+            vals
+              ? String(vals)
+                  .split(/[;,]/)
+                  .map((s) => s.trim().toLowerCase())
+                  .filter(Boolean)
+              : [];
+
+          const onlyMedia = filterSet.has("media") && !filterSet.has("tg");
+          const onlyTg = filterSet.has("tg") && !filterSet.has("media");
+
+          if (onlyMedia) {
+            const mediaVals = [
+              ...checkList(node.keyAssets),
+              ...checkList(node.otherAssets),
+            ];
+            hasWarm = mediaVals.some((t) => warmSet.has(t));
+          } else if (onlyTg) {
+            const tgVals = checkList(node.keyTelegrams);
+            hasWarm = tgVals.some((t) => warmSet.has(t));
+          } else {
+            // default: any warm across all fields
+            const allVals = [
+              ...checkList(node.keyAssets),
+              ...checkList(node.keyTelegrams),
+              ...checkList(node.otherAssets),
+            ];
+            hasWarm = allVals.some((t) => warmSet.has(t));
+          }
 
           // вычисляем размер шрифта для центрального названия так,
           // чтобы оно не переносилось и умещалось в круге — уменьшаем при необходимости
@@ -501,7 +539,9 @@ export const RadarBoard: FC<RadarBoardProps> = ({
               key={node.id}
               className={`${styles["radar-node"]} ${
                 node.accent ? styles["radar-node--accent"] : ""
-              } ${node.id === "tg-channels" ? styles["radar-node--tg"] : ""}`}
+              } ${node.id === "tg-channels" ? styles["radar-node--tg"] : ""} ${
+                poping ? styles["radar-node--pop"] : ""
+              }`}
               style={{
                 left: node.cx,
                 top: node.cy,
@@ -510,7 +550,7 @@ export const RadarBoard: FC<RadarBoardProps> = ({
               }}
               onClick={() => handleClick(node)}
             >
-              {zoomLevel === 1 && hasWarm && activeFilter === "warm" && (
+              {zoomLevel === 1 && hasWarm && filterSet.has("warm") && (
                 <div className={styles["radar-node__warm-indicator"]} />
               )}
               {/* название холдинга всегда в центре — не переносим, подгоняем font-size */}
@@ -520,8 +560,9 @@ export const RadarBoard: FC<RadarBoardProps> = ({
                   zIndex: 2,
                   display: "inline-block",
                   maxWidth: `${nameMaxWidth}px`,
-                  fontSize: `${nameFont}px`,
-                  whiteSpace: "nowrap",
+                  fontSize: `${zoomLevel === 1 ? 14 : nameFont}px`,
+                  fontWeight: zoomLevel === 1 ? 600 : undefined,
+                  whiteSpace: zoomLevel === 1 ? "normal" : "nowrap",
                   overflow: "visible",
                   textOverflow: "clip",
                   textAlign: "center",
@@ -534,15 +575,17 @@ export const RadarBoard: FC<RadarBoardProps> = ({
               {zoomLevel > 1 && content.length > 0 && (
                 <div className={styles["radar-node__content"]}>
                   {content.map((item) => {
-                    const isWarmFilterActive = activeFilter === "warm";
+                    const isWarmFilterActive = filterSet.has("warm");
                     const normalized = item.text.trim().toLowerCase();
-                    const isWarmItem = isWarmFilterActive && warmSet.has(normalized);
-                    const radians = (item.angle * Math.PI) / 180;
-                    // ВАЖНО: координаты считаются в локальных единицах базового диаметра.
-                    // Масштаб зума уже применён к родителю через transform.s —
-                    // поэтому ничего не делим на scale.
-                    const x = item.radius * Math.cos(radians);
-                    const y = item.radius * Math.sin(radians);
+                    const isWarmItem =
+                      isWarmFilterActive && warmSet.has(normalized);
+                    // Если элемент содержит явные смещения — используем их напрямую.
+                    // Это позволяет вручную подгонять позицию каждого элемента по X/Y в px
+                    // относительно центра круга.
+                    const x =
+                      typeof item.offsetX === "number" ? item.offsetX : 0;
+                    const y =
+                      typeof item.offsetY === "number" ? item.offsetY : 0;
 
                     // helper: normalize text (remove punctuation, collapse spaces)
                     const normalize = (s: string) =>
@@ -600,14 +643,15 @@ export const RadarBoard: FC<RadarBoardProps> = ({
                         key={item.id}
                         className={`${styles["radar-node__item"]} ${
                           styles[`radar-node__item--${item.type}`]
-                        } ${isWarmItem ? styles["radar-node__item--warm"] : ""}`}
+                        } ${
+                          isWarmItem ? styles["radar-node__item--warm"] : ""
+                        }`}
                         style={{
                           left: "50%",
                           top: "50%",
                           transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`,
-                          fontSize: `${item.fontSize}px`,
-                          width: isWarmItem ? "auto" : `${item.maxWidth}px`,
-                          minWidth: isWarmItem ? 40 : undefined,
+                          fontSize: `7px`,
+                          width: "auto",
                           whiteSpace: "normal",
                           textAlign: "center",
                           lineHeight: 1.2,
@@ -622,7 +666,12 @@ export const RadarBoard: FC<RadarBoardProps> = ({
                           const match = findHoldingForLabel(raw);
                           // debug logging to help trace mismatches
                           // eslint-disable-next-line no-console
-                          console.log("RadarBoard: item click", { raw, normalized: normalize(raw), matchId: match?.id ?? null, parentNodeId: node.id });
+                          console.log("RadarBoard: item click", {
+                            raw,
+                            normalized: normalize(raw),
+                            matchId: match?.id ?? null,
+                            parentNodeId: node.id,
+                          });
 
                           // If the match corresponds to the parent node, do not open
                           // the parent holding's modal — users asked to see item-specific
@@ -643,7 +692,10 @@ export const RadarBoard: FC<RadarBoardProps> = ({
                             otherAssets: undefined,
                           };
                           // eslint-disable-next-line no-console
-                          console.log("RadarBoard: opening synthetic holding", synthetic.id);
+                          console.log(
+                            "RadarBoard: opening synthetic holding",
+                            synthetic.id
+                          );
                           onSelect(synthetic);
                         }}
                       >

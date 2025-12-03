@@ -1,6 +1,10 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import styles from "./App.module.css";
-import { holdingsLevelOne, type HoldingNode, tgChannels } from "./data/holdings";
+import {
+  holdingsLevelOne,
+  type HoldingNode,
+  tgChannels,
+} from "./data/holdings";
 import type { PositionedNode } from "./types";
 import { RadarBoard } from "./components/RadarBoard";
 // DetailsDrawer temporarily unused
@@ -16,7 +20,9 @@ export default function App() {
   const [nodes, setNodes] = useState<PositionedNode[]>([]);
   const nodesRef = useRef<PositionedNode[]>([]);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [activeFilter, setActiveFilter] = useState<string>("all");
+  // activeFilter: array of selected filter ids, e.g. ['warm','media']
+  // default is ['all'] which means both СМИ и Telegram
+  const [activeFilter, setActiveFilter] = useState<string[]>(["all"]);
   const [selectedHolding, setSelectedHolding] = useState<HoldingNode | null>(
     null
   );
@@ -33,11 +39,25 @@ export default function App() {
     const res: PositionedNode[] = [];
     const r = DIAMETER / 2;
 
-    for (let i = 0; i < holdingsLevelOne.length; i++) {
+    // Grid-based initial placement to avoid heavy initial overlaps.
+    const n = holdingsLevelOne.length;
+    const cols = Math.ceil(Math.sqrt(n));
+    const rows = Math.ceil(n / cols);
+
+    const availableW = Math.max(1, w - 2 * (MARGIN + r));
+    const availableH = Math.max(1, h - 2 * (MARGIN + r));
+    const xStep = availableW / (cols + 1);
+    const yStep = availableH / (rows + 1);
+
+    for (let i = 0; i < n; i++) {
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      const cx = MARGIN + r + xStep * (col + 1);
+      const cy = MARGIN + r + yStep * (row + 1);
       res.push({
         ...holdingsLevelOne[i],
-        cx: MARGIN + r + Math.random() * (w - 2 * (MARGIN + r)),
-        cy: MARGIN + r + Math.random() * (h - 2 * (MARGIN + r)),
+        cx,
+        cy,
         vx: 0,
         vy: 0,
       });
@@ -47,21 +67,28 @@ export default function App() {
   };
 
   // -----------------------
-  // 2. ФИЗИКА (разъезжание)
+  // 2. SYNCHRONOUS RELAXATION (compute final positions immediately)
   // -----------------------
-  const physics = (w: number, h: number) => {
+  // Compute final positions synchronously (no animation) and return settled array.
+  const relaxPositions = (
+    srcList: PositionedNode[],
+    w: number,
+    h: number
+  ): PositionedNode[] => {
     const r = DIAMETER / 2;
     const minDist = DIAMETER + GAP;
 
-    let iteration = 0;
-    const MAX_ITER = 40; // максимум ~20 кадров
-    const SPEED_THRESHOLD = 0.05; // если все скорости меньше — останавливаемся
+    // clone nodes so we don't mutate external refs
+    const list: PositionedNode[] = srcList.map((n) => ({ ...n }));
 
-    function step() {
-      const list = nodesRef.current;
+    let iteration = 0;
+    const MAX_ITER = 120;
+    const SPEED_THRESHOLD = 0.05;
+
+    while (iteration < MAX_ITER) {
       let maxSpeed = 0;
 
-      // отталкивание кругов друг от друга
+      // forces
       for (let i = 0; i < list.length; i++) {
         for (let j = i + 1; j < list.length; j++) {
           const A = list[i];
@@ -76,25 +103,31 @@ export default function App() {
             const overlap = minDist - dist;
             const nx = dx / dist;
             const ny = dy / dist;
-            const force = overlap * 0.03;
+            const force = overlap * 0.02;
 
-            A.vx -= nx * force;
-            A.vy -= ny * force;
-            B.vx += nx * force;
-            B.vy += ny * force;
+            A.vx = (A.vx || 0) - nx * force;
+            A.vy = (A.vy || 0) - ny * force;
+            B.vx = (B.vx || 0) + nx * force;
+            B.vy = (B.vy || 0) + ny * force;
           }
         }
       }
 
-      // применяем скорости + затухание + рамка
+      // integrate
       for (const n of list) {
-        n.cx += n.vx;
-        n.cy += n.vy;
+        const MAX_V = 12;
+        if (n.vx && n.vx > MAX_V) n.vx = MAX_V;
+        if (n.vx && n.vx < -MAX_V) n.vx = -MAX_V;
+        if (n.vy && n.vy > MAX_V) n.vy = MAX_V;
+        if (n.vy && n.vy < -MAX_V) n.vy = -MAX_V;
 
-        n.vx *= 0.85;
-        n.vy *= 0.85;
+        n.cx += n.vx || 0;
+        n.cy += n.vy || 0;
 
-        const speed = Math.hypot(n.vx, n.vy);
+        n.vx = (n.vx || 0) * 0.92;
+        n.vy = (n.vy || 0) * 0.92;
+
+        const speed = Math.hypot(n.vx || 0, n.vy || 0);
         if (speed > maxSpeed) maxSpeed = speed;
 
         const minX = MARGIN + r;
@@ -108,21 +141,11 @@ export default function App() {
         if (n.cy > maxY) n.cy = maxY;
       }
 
-      setNodes([...list]);
-
       iteration++;
-
-      // УСЛОВИЕ ОСТАНОВКИ:
-      // 1) сделали достаточно шагов
-      // 2) или все скорости уже маленькие — система "успокоилась"
-      if (iteration >= MAX_ITER || maxSpeed < SPEED_THRESHOLD) {
-        return; // больше не вызываем requestAnimationFrame
-      }
-
-      requestAnimationFrame(step);
+      if (maxSpeed < SPEED_THRESHOLD) break;
     }
 
-    requestAnimationFrame(step);
+    return list;
   };
 
   // -----------------------
@@ -173,11 +196,10 @@ export default function App() {
 
     // создаём стартовый layout один раз
     const initial = createInitial(w, h);
-    nodesRef.current = initial;
-    setNodes([...initial]);
-
-    // запускаем физику
-    physics(w, h);
+    // рассчитываем финальные позиции синхронно и ставим их сразу
+    const settled = relaxPositions(initial, w, h);
+    nodesRef.current = settled;
+    setNodes([...settled]);
 
     // следим за изменениями размера
     const ro = new ResizeObserver(() => {
@@ -189,6 +211,18 @@ export default function App() {
 
     return () => ro.disconnect();
   }, []);
+
+  // Когда изменяется набор фильтров, перераспределяем узлы, чтобы убрать возможные перекрытия
+  useEffect(() => {
+    if (!boardRef.current) return;
+    const rect = boardRef.current.getBoundingClientRect();
+    // пересчитаем позиции синхронно и сразу установим итоговую раскладку
+    const settled = relaxPositions(nodesRef.current, rect.width, rect.height);
+    nodesRef.current = settled;
+    setNodes([...settled]);
+    return;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeFilter]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -202,19 +236,50 @@ export default function App() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  const filterOptions = [
-    { id: "all", label: "Все", active: activeFilter === "all" },
-    { id: "private", label: "Частные", active: activeFilter === "private" },
-    { id: "warm", label: "Тёплый контакт", active: activeFilter === "warm" },
-    { id: "media", label: "СМИ", active: activeFilter === "media" },
-    { id: "tg", label: "Telegram", active: activeFilter === "tg" },
+  const baseOptions = [
+    { id: "all", label: "СМИ и Telegram" },
+    { id: "private", label: "Частные" },
+    { id: "warm", label: "Тёплый контакт" },
+    { id: "media", label: "СМИ" },
+    { id: "tg", label: "Telegram" },
   ];
 
+  // derive active flag for UI
+  const activeSet = new Set(activeFilter);
+  const filterOptions = baseOptions.map((opt) => ({
+    ...opt,
+    active: activeSet.has(opt.id),
+  }));
+
   const handleToggleFilterOption = (id: string) => {
-    // single-selection behavior: selecting an already active option resets to "all"
-    setActiveFilter((prev) => (prev === id ? "all" : id));
-    // NOTE: do not close the filter dropdown after selecting an option —
-    // user requested the menu to stay open when choosing "Telegram".
+    setActiveFilter((prev) => {
+      const s = new Set(prev);
+      // selecting 'all' resets everything
+      if (id === "all") return ["all"];
+
+      // remove the 'all' placeholder if present
+      s.delete("all");
+
+      if (id === "warm") {
+        if (s.has("warm")) s.delete("warm");
+        else s.add("warm");
+      } else if (id === "media" || id === "tg") {
+        // media and tg are mutually exclusive
+        if (s.has(id)) s.delete(id);
+        else {
+          s.delete(id === "media" ? "tg" : "media");
+          s.add(id);
+        }
+      } else {
+        // toggle other options (e.g., private)
+        if (s.has(id)) s.delete(id);
+        else s.add(id);
+      }
+
+      if (s.size === 0) return ["all"];
+      return Array.from(s);
+    });
+    // NOTE: keep dropdown open per UX request
   };
 
   return (
@@ -225,7 +290,16 @@ export default function App() {
           onToggleFilter={() => setIsFilterOpen((prev) => !prev)}
           onCloseFilter={() => setIsFilterOpen(false)}
           onZoomIn={() => setZoomInTrigger((t) => t + 1)}
-          onZoomOut={() => setZoomOutTrigger((t) => t + 1)}
+          onZoomOut={() => {
+            // If modal is open, close it and step zoom once (to level 2)
+            if (selectedHolding) {
+              setSelectedHolding(null);
+              // trigger one zoom-out step in the board
+              setZoomOutTrigger((t) => t + 1);
+              return;
+            }
+            setZoomOutTrigger((t) => t + 1);
+          }}
           filterOptions={filterOptions}
           onToggleFilterOption={handleToggleFilterOption}
         />

@@ -1,0 +1,152 @@
+// Ручная раскладка элементов внутри каждого круга.
+// Ключ — id холдинга (node.id). Значение — массив объектов для каждой подписи:
+// { text, type: 'asset'|'telegram', x, y }
+// Координаты `x,y` — в пикселях относительно центра круга (локальные единицы).
+
+export type ManualLayoutItem = {
+  text: string;
+  type: "asset" | "telegram";
+  x: number;
+  y: number;
+};
+
+export const manualLayout: Record<string, ManualLayoutItem[]> = {
+  // Автогенерация: статические позиции для ВСЕХ элементов из holdingsLevelOne.
+  vgtrk: [
+    { text: "Россия-1", type: "asset", x: -60, y: -36 },
+    { text: "Россия 24", type: "asset", x: -10, y: -66 },
+    { text: "Москва 24", type: "asset", x: 5, y: 76 },
+    { text: "ВЕСТИ", type: "telegram", x: 0, y: -36 },
+    { text: "Скабеева", type: "telegram", x: 56, y: -60 },
+    { text: "Соловьев", type: "telegram", x: 40, y: 28 },
+    { text: "Смотрим.ру", type: "asset", x: -70, y: 8 },
+    { text: "Радио России", type: "asset", x: 44, y: 53 },
+    { text: "Радио Маяк", type: "asset", x: 60, y: -18 },
+    { text: "Вести ФМ", type: "asset", x: 80, y: 7 },
+    { text: "Радио Культура", type: "asset", x: -40, y: 50 },
+  ],
+
+  nmg: [
+    { text: "Известия", type: "asset", x: -60, y: -36 },
+    { text: "Деловой Петербург", type: "asset", x: 0, y: 56 },
+    { text: "78.ru", type: "asset", x: 50, y: 26 },
+    { text: "IZ.RU", type: "telegram", x: 0, y: -76 },
+    { text: "78 | Новости", type: "telegram", x: 40, y: -46 },
+    { text: "Спорт Экспресс", type: "asset", x: 66, y: -18 },
+    { text: "РЕН ТВ", type: "asset", x: -70, y: 12 },
+  ],
+
+  gazprom: [
+    { text: "НТВ", type: "asset", x: -60, y: -36 },
+    { text: "Матч ТВ", type: "asset", x: 0, y: -66 },
+    { text: "НТВ", type: "telegram", x: -60, y: 46 },
+    { text: "Матч-ТВ", type: "telegram", x: 50, y: -36 },
+    { text: "ИД 7 Дней", type: "asset", x: 60, y: 46 },
+    { text: "ТНТ", type: "asset", x: 0, y: 38 },
+    { text: "Пятница!", type: "asset", x: -30, y: 68 },
+    { text: "ТВ-3", type: "asset", x: -15, y: -28 },
+    { text: "Суббота", type: "asset", x: 30, y: 68 },
+  ],
+
+  ria: [
+    { text: "РИА Новости", type: "asset", x: 0, y: -80 },
+    { text: "Sputnik", type: "asset", x: -35, y: -61 },
+    { text: "Russia Today", type: "asset", x: 61, y: -35 },
+    { text: "РИА Новости", type: "telegram", x: 10, y: -20 },
+    { text: "Маргарита Симоньян", type: "telegram", x: -41, y: 25 },
+    { text: "Радио Спутник", type: "telegram", x: 35, y: 61 },
+    { text: "RT на русском", type: "telegram", x: 0, y: 75 },
+    { text: "Прайм", type: "asset", x: -50, y: 61 },
+    { text: "Arctic.ru", type: "asset", x: 71, y: 25 },
+    { text: "ИноСМИ", type: "asset", x: 30, y: 35 },
+    { text: "Baltnews", type: "asset", x: -61, y: -35 },
+    { text: "Украина.ру", type: "asset", x: 35, y: -61 },
+  ],
+
+  tass: [
+    { text: "ТАСС", type: "asset", x: 0, y: -46 },
+    { text: "ТАСС", type: "telegram", x: -60, y: 36 },
+    { text: "ТАСС Live", type: "telegram", x: 60, y: 36 },
+  ],
+
+  rambler: [
+    { text: "Lenta.ru", type: "asset", x: 69, y: 12 },
+    { text: "Газета.ru", type: "asset", x: 45, y: 54 },
+    { text: "Лента дня", type: "telegram", x: 0, y: 70 }, // x = 0, но |y| большое
+    { text: "Лента добра", type: "telegram", x: -45, y: 54 },
+    { text: "Газета.ру", type: "telegram", x: -69, y: 12 },
+    { text: "Чемпионат", type: "asset", x: -61, y: -35 },
+    { text: "Секрет Фирмы", type: "asset", x: -24, y: -66 },
+    { text: "Ferra.ru", type: "asset", x: 24, y: -66 },
+    { text: "Motor.ru", type: "asset", x: 61, y: -35 },
+  ],
+
+  shkulev: [
+    { text: "E1.ru", type: "asset", x: 69, y: 22 },
+    { text: "Marie Claire", type: "asset", x: 49, y: 51 },
+    { text: "NGS.ru", type: "asset", x: 0, y: 70 }, // x = 0, |y| большое
+    { text: "E1.ru", type: "telegram", x: -49, y: 51 },
+    { text: "НГС.ру", type: "telegram", x: -69, y: 22 },
+    { text: "theGirl", type: "asset", x: -49, y: -51 },
+    { text: "Фонтанка", type: "asset", x: 0, y: -70 }, // x = 0, |y| большое
+    { text: "Psychologies.ru", type: "asset", x: 49, y: -51 },
+  ],
+
+  rbc: [
+    { text: "RBC.ru", type: "asset", x: 69, y: 12 },
+    { text: "РБК ТВ", type: "asset", x: 45, y: 44 },
+    { text: "РБК Нац.проекты", type: "asset", x: 0, y: 70 }, // x = 0, |y| большое
+    { text: "РБК Тренды", type: "asset", x: -45, y: 44 },
+    { text: "РБК", type: "telegram", x: -69, y: 12 },
+    { text: "РБК Крипто", type: "telegram", x: -45, y: -54 },
+    { text: "Сам ты инвестор", type: "telegram", x: 45, y: -54 },
+  ],
+
+  "news-media": [
+    { text: "LIFE", type: "asset", x: -67, y: 22 },
+    { text: "Mash", type: "telegram", x: 67, y: 22 },
+    { text: "Baza", type: "telegram", x: 0, y: 70 }, // x = 0, |y| большое
+    { text: "SHOT", type: "telegram", x: 41, y: -57 },
+    { text: "SHOT Проверка", type: "telegram", x: -41, y: -57 },
+  ],
+
+  kommersant: [
+    { text: "Коммерсантъ", type: "asset", x: 0, y: 70 },
+    { text: "Коммерсантъ FM", type: "telegram", x: 57, y: -22 },
+    { text: "Коммерсантъ WEEKEND", type: "asset", x: 31, y: 27 },
+    { text: "Коммерсантъ АВТОПИЛОТ", type: "asset", x: -41, y: -57 },
+    { text: "Коммерсантъ ДЕНЬГИ", type: "asset", x: -47, y: 42 },
+  ],
+
+  kp: [
+    { text: "Комсомольская правда", type: "asset", x: 0, y: -56 },
+    { text: "Комсомольская Правда", type: "telegram", x: 0, y: 56 },
+  ],
+
+  "msk-media": [
+    { text: "Москва 24", type: "asset", x: 0, y: 70 },
+    { text: "АГН Москва", type: "asset", x: 61, y: 35 },
+    { text: "Москва FM", type: "asset", x: 61, y: -35 },
+    { text: "Москва 24", type: "telegram", x: 0, y: -70 },
+    { text: "Москва FM", type: "telegram", x: -61, y: -35 },
+    { text: "Сити Москва 24", type: "telegram", x: -61, y: 35 },
+  ],
+
+  // Новостные Telegram-каналы (включены имена популярных каналов)
+  "tg-channels": [
+    { text: "Прямой Эфир", type: "telegram", x: 0, y: 75 },
+    { text: "Топор Live", type: "telegram", x: 38, y: 59 },
+    { text: "Mash", type: "telegram", x: 64, y: 29 },
+    { text: "РИА Новости", type: "telegram", x: 69, y: -20 },
+    { text: "ТАСС", type: "telegram", x: 53, y: -46 },
+    { text: "Readovka", type: "telegram", x: 10, y: -27 },
+    { text: "Раньше всех. Ну почти", type: "telegram", x: 0, y: -67 },
+    { text: "Правдивости", type: "telegram", x: -53, y: -46 },
+    { text: "Baza", type: "telegram", x: -69, y: -20 },
+    { text: "Осторожно, Новости", type: "telegram", x: -34, y: 29 },
+    { text: "SHOT", type: "telegram", x: -38, y: 59 },
+  ],
+  // Добавляйте другие холдинги по id и списки элементов вручную.
+};
+
+export default manualLayout;
