@@ -794,7 +794,8 @@ export const RadarBoard: FC<RadarBoardProps> = ({
                           const synthetic: HoldingNode = {
                             id: `synthetic-${node.id}-${item.id}`,
                             name: raw,
-                            description: "Дополнительная информация будет добавлена позже.",
+                            description:
+                              "Дополнительная информация будет добавлена позже.",
                             keyAssets: undefined,
                             keyTelegrams: undefined,
                             otherAssets: undefined,
