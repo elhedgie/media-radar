@@ -5,6 +5,7 @@ import type { PositionedNode } from "../types";
 import type { HoldingNode } from "../data/holdings";
 import { manualLayout } from "../data/manualLayout";
 import { warmSet } from "../data/warmContacts";
+import { tgChannels, tgChannelNameMap } from "../data/holdings";
 
 // локальный тип уровня зума (2 или 3)
 type ZoomLevel = 2 | 3;
@@ -767,12 +768,33 @@ export const RadarBoard: FC<RadarBoardProps> = ({
                             return;
                           }
 
+                          // Try to find the telegram channel using the name map
+                          const tgId = tgChannelNameMap[raw];
+                          if (tgId) {
+                            const tgChannel = tgChannels.find(
+                              (tg) => tg.id === tgId
+                            );
+                            if (tgChannel) {
+                              onSelect(tgChannel);
+                              return;
+                            }
+                          }
+
+                          // Fallback: try direct name match
+                          const tgChannel = tgChannels.find(
+                            (tg) => tg.name === raw
+                          );
+                          if (tgChannel) {
+                            onSelect(tgChannel);
+                            return;
+                          }
+
                           // If no matching holding exists, open a synthetic minimal
                           // holding record for this element so the modal shows element-specific data.
                           const synthetic: HoldingNode = {
                             id: `synthetic-${node.id}-${item.id}`,
                             name: raw,
-                            description: undefined,
+                            description: "Дополнительная информация будет добавлена позже.",
                             keyAssets: undefined,
                             keyTelegrams: undefined,
                             otherAssets: undefined,
