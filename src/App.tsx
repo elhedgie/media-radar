@@ -15,22 +15,20 @@ import { manualLayout } from "./data/manualLayout";
 
 const DIAMETER = 205;
 
-const channelPlacementMap: Record<
-  string,
-  { nodeId: string; label: string }
-> = (() => {
-  const map: Record<string, { nodeId: string; label: string }> = {};
-  for (const [nodeId, items] of Object.entries(manualLayout)) {
-    for (const item of items) {
-      if (item.type !== "telegram") continue;
-      const channelId = tgChannelNameMap[item.text];
-      if (channelId && !map[channelId]) {
-        map[channelId] = { nodeId, label: item.text };
+const channelPlacementMap: Record<string, { nodeId: string; label: string }> =
+  (() => {
+    const map: Record<string, { nodeId: string; label: string }> = {};
+    for (const [nodeId, items] of Object.entries(manualLayout)) {
+      for (const item of items) {
+        if (item.type !== "telegram") continue;
+        const channelId = tgChannelNameMap[item.text];
+        if (channelId && !map[channelId]) {
+          map[channelId] = { nodeId, label: item.text };
+        }
       }
     }
-  }
-  return map;
-})();
+    return map;
+  })();
 
 export default function App() {
   const boardRef = useRef<HTMLDivElement | null>(null);
@@ -38,7 +36,9 @@ export default function App() {
   const nodesRef = useRef<PositionedNode[]>([]);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState<string[]>(["all"]);
-  const [selectedHolding, setSelectedHolding] = useState<HoldingNode | null>(null);
+  const [selectedHolding, setSelectedHolding] = useState<HoldingNode | null>(
+    null
+  );
   const [resetZoomTrigger, _setResetZoomTrigger] = useState(0);
   const [zoomInTrigger, setZoomInTrigger] = useState(0);
   const [zoomOutTrigger, setZoomOutTrigger] = useState(0);
@@ -47,8 +47,12 @@ export default function App() {
   const [focusNodeId, setFocusNodeId] = useState<string | null>(null);
   const [focusNodeTrigger, setFocusNodeTrigger] = useState(0);
   const [highlightNodeId, setHighlightNodeId] = useState<string | null>(null);
-  const [highlightItemLabel, setHighlightItemLabel] = useState<string | null>(null);
-  const [highlightChannelId, setHighlightChannelId] = useState<string | null>(null);
+  const [highlightItemLabel, setHighlightItemLabel] = useState<string | null>(
+    null
+  );
+  const [highlightChannelId, setHighlightChannelId] = useState<string | null>(
+    null
+  );
 
   const createInitial = (): PositionedNode[] => {
     const res: PositionedNode[] = [];
@@ -74,7 +78,10 @@ export default function App() {
   ];
 
   const activeSet = new Set(activeFilter);
-  const filterOptions = baseOptions.map((opt) => ({ ...opt, active: activeSet.has(opt.id) }));
+  const filterOptions = baseOptions.map((opt) => ({
+    ...opt,
+    active: activeSet.has(opt.id),
+  }));
 
   const handleToggleFilterOption = (id: string) => {
     setActiveFilter((prev) => {
@@ -99,9 +106,11 @@ export default function App() {
     });
   };
 
-  const handleSelectSearchResult = (id: string, type: "holding" | "channel") => {
-    const source =
-      type === "holding" ? holdingsLevelOne : tgChannels;
+  const handleSelectSearchResult = (
+    id: string,
+    type: "holding" | "channel"
+  ) => {
+    const source = type === "holding" ? holdingsLevelOne : tgChannels;
     const found =
       source.find((item) => item.id === id) ??
       [...holdingsLevelOne, ...tgChannels].find((item) => item.id === id);

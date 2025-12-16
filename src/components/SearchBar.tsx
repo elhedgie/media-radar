@@ -256,8 +256,12 @@ export const SearchBar: FC<SearchBarProps> = ({
                 onSelectSearchResult?.(result.id, result.type);
               }}
             >
-              <span className={styles["search-result-name"]}>{result.name}</span>
-              <span className={styles["search-result-type"]}>{result.type === "holding" ? "Холдинг" : "Канал"}</span>
+              <span className={styles["search-result-name"]}>
+                {result.name}
+              </span>
+              <span className={styles["search-result-type"]}>
+                {result.type === "holding" ? "Холдинг" : "Канал"}
+              </span>
             </div>
           ))}
         </div>
