@@ -23,7 +23,11 @@ export const DetailsDrawer: FC<DetailsDrawerProps> = ({ holding, onClose }) => {
     holding.subscribers != null;
 
   return (
-    <div className={styles["details-overlay"]} role="presentation">
+    <div
+      className={styles["details-overlay"]}
+      role="presentation"
+      data-prevent-search-close="true"
+    >
       <article
         className={styles["details-modal"]}
         role="dialog"

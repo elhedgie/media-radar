@@ -1,4 +1,4 @@
-import { useState, type FC } from "react";
+import type { FC } from "react";
 import styles from "../App.module.css";
 import { FilterDropdown } from "./FilterDropdown";
 import { SearchBar } from "./SearchBar";
@@ -9,6 +9,8 @@ type FilterOption = {
   active?: boolean;
 };
 
+type SearchResultType = "holding" | "channel";
+
 type AppHeaderProps = {
   isFilterOpen: boolean;
   filterOptions: FilterOption[];
@@ -17,6 +19,11 @@ type AppHeaderProps = {
   onToggleFilterOption?: (id: string) => void;
   onZoomIn?: () => void;
   onZoomOut?: () => void;
+  onSelectSearchResult?: (id: string, type: SearchResultType) => void;
+  isSearchOpen: boolean;
+  setIsSearchOpen: (param: boolean) => void;
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
 };
 
 export const AppHeader: FC<AppHeaderProps> = ({
@@ -27,8 +34,12 @@ export const AppHeader: FC<AppHeaderProps> = ({
   onZoomIn,
   onZoomOut,
   onToggleFilterOption,
+  onSelectSearchResult,
+  isSearchOpen,
+  setIsSearchOpen,
+  searchQuery,
+  setSearchQuery,
 }) => {
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
   return (
     <>
       <header className={styles["app__header"]}>
@@ -110,6 +121,9 @@ export const AppHeader: FC<AppHeaderProps> = ({
             <SearchBar
               isOpen={isSearchOpen}
               setIsSearchOpen={setIsSearchOpen}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              onSelectSearchResult={onSelectSearchResult}
             />
           )}
         </div>

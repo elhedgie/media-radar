@@ -4,14 +4,33 @@ import {
   holdingsLevelOne,
   type HoldingNode,
   tgChannels,
+  tgChannelNameMap,
 } from "./data/holdings";
 import { fixedPositions } from "./data/fixedPositions";
 import type { PositionedNode } from "./types";
 import { RadarBoard } from "./components/RadarBoard";
 import { DetailsDrawer } from "./components/DetailsDrawer";
 import { AppHeader } from "./components/AppHeader";
+import { manualLayout } from "./data/manualLayout";
 
 const DIAMETER = 205;
+
+const channelPlacementMap: Record<
+  string,
+  { nodeId: string; label: string }
+> = (() => {
+  const map: Record<string, { nodeId: string; label: string }> = {};
+  for (const [nodeId, items] of Object.entries(manualLayout)) {
+    for (const item of items) {
+      if (item.type !== "telegram") continue;
+      const channelId = tgChannelNameMap[item.text];
+      if (channelId && !map[channelId]) {
+        map[channelId] = { nodeId, label: item.text };
+      }
+    }
+  }
+  return map;
+})();
 
 export default function App() {
   const boardRef = useRef<HTMLDivElement | null>(null);
@@ -19,12 +38,17 @@ export default function App() {
   const nodesRef = useRef<PositionedNode[]>([]);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState<string[]>(["all"]);
-  const [selectedHolding, setSelectedHolding] = useState<HoldingNode | null>(
-    null
-  );
+  const [selectedHolding, setSelectedHolding] = useState<HoldingNode | null>(null);
   const [resetZoomTrigger, _setResetZoomTrigger] = useState(0);
   const [zoomInTrigger, setZoomInTrigger] = useState(0);
   const [zoomOutTrigger, setZoomOutTrigger] = useState(0);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [focusNodeId, setFocusNodeId] = useState<string | null>(null);
+  const [focusNodeTrigger, setFocusNodeTrigger] = useState(0);
+  const [highlightNodeId, setHighlightNodeId] = useState<string | null>(null);
+  const [highlightItemLabel, setHighlightItemLabel] = useState<string | null>(null);
+  const [highlightChannelId, setHighlightChannelId] = useState<string | null>(null);
 
   const createInitial = (): PositionedNode[] => {
     const res: PositionedNode[] = [];
@@ -44,17 +68,13 @@ export default function App() {
 
   const baseOptions = [
     { id: "all", label: "СМИ и Telegram" },
-    { id: "private", label: "Частные" },
     { id: "warm", label: "Тёплый контакт" },
     { id: "media", label: "СМИ" },
     { id: "tg", label: "Telegram" },
   ];
 
   const activeSet = new Set(activeFilter);
-  const filterOptions = baseOptions.map((opt) => ({
-    ...opt,
-    active: activeSet.has(opt.id),
-  }));
+  const filterOptions = baseOptions.map((opt) => ({ ...opt, active: activeSet.has(opt.id) }));
 
   const handleToggleFilterOption = (id: string) => {
     setActiveFilter((prev) => {
@@ -79,6 +99,34 @@ export default function App() {
     });
   };
 
+  const handleSelectSearchResult = (id: string, type: "holding" | "channel") => {
+    const source =
+      type === "holding" ? holdingsLevelOne : tgChannels;
+    const found =
+      source.find((item) => item.id === id) ??
+      [...holdingsLevelOne, ...tgChannels].find((item) => item.id === id);
+    if (!found) return;
+
+    setSelectedHolding(found);
+    setHighlightItemLabel(null);
+    setHighlightNodeId(null);
+    setHighlightChannelId(null);
+
+    if (type === "holding") {
+      setFocusNodeId(found.id);
+      setFocusNodeTrigger((t) => t + 1);
+      setHighlightNodeId(found.id);
+      return;
+    }
+
+    const placement = channelPlacementMap[id];
+    const targetNodeId = placement?.nodeId ?? "tg-channels";
+    setFocusNodeId(targetNodeId);
+    setFocusNodeTrigger((t) => t + 1);
+    setHighlightItemLabel(placement?.label ?? found.name);
+    setHighlightChannelId(id);
+  };
+
   return (
     <>
       <div className={styles["app"]}>
@@ -97,6 +145,11 @@ export default function App() {
           }}
           filterOptions={filterOptions}
           onToggleFilterOption={handleToggleFilterOption}
+          onSelectSearchResult={handleSelectSearchResult}
+          isSearchOpen={isSearchOpen}
+          setIsSearchOpen={setIsSearchOpen}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
         />
 
         <RadarBoard
@@ -121,6 +174,11 @@ export default function App() {
           resetZoomTrigger={resetZoomTrigger}
           zoomInTrigger={zoomInTrigger}
           zoomOutTrigger={zoomOutTrigger}
+          focusNodeId={focusNodeId}
+          focusNodeTrigger={focusNodeTrigger}
+          highlightNodeId={highlightNodeId}
+          highlightItemLabel={highlightItemLabel}
+          highlightChannelId={highlightChannelId}
         />
       </div>
       <DetailsDrawer

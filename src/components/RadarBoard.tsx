@@ -7,6 +7,14 @@ import { manualLayout } from "../data/manualLayout";
 import { warmSet } from "../data/warmContacts";
 import { tgChannels, tgChannelNameMap } from "../data/holdings";
 
+const normalizeLabel = (s: string) =>
+  String(s)
+    .normalize("NFKC")
+    .replace(/\p{P}/gu, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+
 // локальный тип уровня зума (2 или 3)
 type ZoomLevel = 2 | 3;
 
@@ -32,6 +40,11 @@ type RadarBoardProps = {
   zoomInTrigger?: number;
   zoomOutTrigger?: number;
   activeFilter?: string | string[];
+  focusNodeId?: string | null;
+  focusNodeTrigger?: number;
+  highlightNodeId?: string | null;
+  highlightItemLabel?: string | null;
+  highlightChannelId?: string | null;
 };
 
 export const RadarBoard: FC<RadarBoardProps> = ({
@@ -45,6 +58,11 @@ export const RadarBoard: FC<RadarBoardProps> = ({
   resetZoomTrigger,
   zoomInTrigger,
   zoomOutTrigger,
+  focusNodeId,
+  focusNodeTrigger,
+  highlightNodeId,
+  highlightItemLabel,
+  highlightChannelId,
 }) => {
   // локальное состояние трансформации (tx, ty, scale)
   const [transform, setTransform] = useState({ tx: 0, ty: 0, s: 1 });
@@ -324,6 +342,24 @@ export const RadarBoard: FC<RadarBoardProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [zoomOutTrigger]);
 
+  // При выборе актива из поиска центрируем нужный круг и переходим на 3 уровень
+  useEffect(() => {
+    if (typeof focusNodeTrigger !== "number" || !focusNodeId) return;
+    const node = nodes.find((n) => n.id === focusNodeId);
+    if (!node) return;
+    const board = boardRef?.current;
+    if (!board) return;
+    const wrapper = (board.parentElement as HTMLElement) || board;
+    const rect = wrapper.getBoundingClientRect();
+    const targetScale = SCALE_2;
+    const tx = rect.width / 2 - node.cx * targetScale - 250;
+    const ty = rect.height / 2 - node.cy * targetScale;
+
+    setForceVisibleId(node.id);
+    animateTo({ tx, ty, s: targetScale });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusNodeTrigger, focusNodeId, nodes]);
+
   // refs для drag
   const isDraggingRef = useRef(false);
   const dragStartRef = useRef({ x: 0, y: 0 });
@@ -427,6 +463,11 @@ export const RadarBoard: FC<RadarBoardProps> = ({
       ? [activeFilter]
       : ["all"]
   );
+  const highlightedNode = highlightNodeId ?? null;
+  const highlightedItemKey = highlightItemLabel
+    ? normalizeLabel(highlightItemLabel)
+    : null;
+  const highlightedChannelId = highlightChannelId ?? null;
 
   const getNodeContent = (node: PositionedNode): DistributedItem[] => {
     if (zoomLevel === 1) return [];
@@ -560,6 +601,7 @@ export const RadarBoard: FC<RadarBoardProps> = ({
             )
         ).map((node) => {
           const content = getNodeContent(node);
+          const isNodeHighlighted = highlightedNode === node.id;
 
           // determine if this node contains any warm contact (for level 1 indicator)
           // Behavior:
@@ -653,6 +695,7 @@ export const RadarBoard: FC<RadarBoardProps> = ({
                   textOverflow: "clip",
                   textAlign: "center",
                   transition: "font-size 220ms ease", // смягчить смену кегля
+                  textDecoration: isNodeHighlighted ? "underline" : undefined,
                 }}
                 title={node.name}
               >
@@ -682,6 +725,16 @@ export const RadarBoard: FC<RadarBoardProps> = ({
                         .replace(/\s+/g, " ")
                         .trim()
                         .toLowerCase();
+                    const itemChannelId = tgChannelNameMap[item.text];
+                    const matchesChannelId =
+                      highlightedChannelId &&
+                      itemChannelId === highlightedChannelId;
+                    const matchesLabel =
+                      highlightedItemKey &&
+                      normalizeLabel(item.text) === highlightedItemKey;
+                    const isHighlightedItem =
+                      item.type === "telegram" &&
+                      (matchesChannelId || matchesLabel);
 
                     // helper: find best matching holding for a given label
                     const findHoldingForLabel = (label: string) => {
@@ -732,6 +785,10 @@ export const RadarBoard: FC<RadarBoardProps> = ({
                           styles[`radar-node__item--${item.type}`]
                         } ${
                           isWarmItem ? styles["radar-node__item--warm"] : ""
+                        } ${
+                          isHighlightedItem
+                            ? styles["radar-node__item--highlight"]
+                            : ""
                         }`}
                         style={{
                           left: "50%",
