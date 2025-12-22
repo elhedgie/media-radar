@@ -27,29 +27,32 @@ export const FilterDropdown: FC<FilterDropdownProps> = ({
   <div
     className={`${styles["toolbar"]} ${isOpen ? styles["toolbar--open"] : ""}`}
   >
-    <button
-      className={styles["toolbar__dropdown"]}
-      type="button"
-      onClick={onToggle}
-      aria-haspopup="dialog"
-      aria-expanded={isOpen}
-    >
-      {selectedLabel ?? "Все"}
-      <svg
-        className={styles["toolbar__dropdown-icon"]}
-        width="15"
-        height="9"
-        viewBox="0 0 15 9"
-        fill="none"
-        aria-hidden="true"
+    {!isOpen && (
+      <button
+        className={styles["toolbar__dropdown"]}
+        type="button"
+        onClick={onToggle}
+        aria-haspopup="dialog"
+        aria-expanded={isOpen}
+        aria-label={selectedLabel ?? "Все"}
       >
-        <path
-          d="M13.6462 0.613281L7.12988 7.12964L0.613525 0.613281"
-          stroke="black"
-          strokeWidth="1.7354"
-        />
-      </svg>
-    </button>
+        {selectedLabel ?? "Все"}
+        <svg
+          className={styles["toolbar__dropdown-icon"]}
+          width="15"
+          height="9"
+          viewBox="0 0 15 9"
+          fill="none"
+          aria-hidden="true"
+        >
+          <path
+            d="M13.6462 0.613281L7.12988 7.12964L0.613525 0.613281"
+            stroke="black"
+            strokeWidth="1.7354"
+          />
+        </svg>
+      </button>
+    )}
 
     {isOpen && (
       <>

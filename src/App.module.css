@@ -49,13 +49,16 @@
   background-color: white;
   border-radius: 999px; /* по умолчанию круглый */
   z-index: 80; /* над доской */
-  width: 240px; /* не растягивать шапку */
-  padding: 0.5rem 1rem; /* компактные отступы */
-  box-shadow: 0 6px 18px rgba(28,42,68,0.06);
+  width: 266px; /* ширина меню из макета */
+  height: 43px;
+  font-weight: 700;
 }
 
 .toolbar--open {
   border-radius: 20px; /* при открытом меню скругление 20px */
+    padding: 20px; /* отступы как в макете */
+  height: unset;
+
 }
 
 .toolbar__dropdown {
@@ -78,6 +81,15 @@
   white-space: nowrap;
   box-sizing: border-box;
 }
+.toolbar__dropdown--icon-only {
+  min-width: auto;
+  width: 48px;
+  padding: 0;
+  justify-content: center;
+}
+.toolbar__dropdown--icon-only svg {
+  margin-left: 0;
+}
 
 .toolbar__dropdown-icon {
   width: 15px;
@@ -87,14 +99,9 @@
 }
 
 .filter-card {
-  /* position: absolute; открывается поверх, не влияет на поток */
-  top: 0;
-  left: 0;
+ width: 100%;
   background: #ffffff;
-  /* border-radius: 20px; */
-  padding: 1rem 1.25rem;
-  /* box-shadow: 0 12px 30px rgba(28, 42, 68, 0.15); */
-  min-width: 180px;
+  padding: 0;
   z-index: 100; /* над доской */
 }
 
@@ -102,6 +109,7 @@
   list-style: none;
   margin: 0;
   padding: 0;
+  width: 100%;
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
@@ -111,26 +119,27 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 0.95rem;
-  font-weight: 600;
+  font-size: 18px;
+  font-weight: 700;
   color: #171c2c;
   gap: .5em;
 }
 
 .filter-dot {
-  width: 16px;
-  height: 16px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   background: #edeef7;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  margin-left: auto;
 }
 
 .filter-dot svg {
-  width: 10px;
-  height: 7px;
+  width: 18px;
+  height: 13px;
 }
 
 .filter-backdrop {
@@ -251,7 +260,11 @@
   transform: translate(-50%, -50%);
   overflow: hidden;
   /* No transition: nodes placed immediately at final positions */
-  transition: none;
+  transition: background-color 400ms ease;
+}
+
+.radar-node:hover {
+  background: #e5e5ef;
 }
 
 /* Pop animation on initial mount: slight grow then settle */
@@ -387,7 +400,6 @@
   height: 100%;
   background: #ffffff;
   box-shadow: -30px 0 60px rgba(17, 23, 46, 0.15);
-  border-left: 2px solid #F1F1F7;
   padding: clamp(1.5rem, 3vw, 2.75rem);
   display: flex;
   flex-direction: column;
@@ -424,7 +436,7 @@
   width: 44px;
   height: 44px;
   border-radius: 14px;
-  border: 1px solid #e6e8f1;
+  border: none;
   background: #ffffff;
   display: grid;
   place-items: center;
@@ -628,17 +640,27 @@
   width: 317px;
   height: 43px;
   background: #ffffff;
-  border-radius: 80px;
+   border-top-left-radius: 22px;
+  border-top-right-radius: 22px;
+  border-bottom-left-radius: 22px;
+  border-bottom-right-radius: 22px;
   padding: 8px 18px; /* reduced vertical padding to fit height */
   display: flex;
   align-items: center;
-  box-shadow: 0 4px 35px rgba(0, 0, 0, 0.06);
+  box-shadow: none;
   position: absolute; /* overlay, so it doesn't push header content */
   right: 0;
   top: 50%;
   transform: translateY(-50%);
   z-index: 20;
   box-sizing: border-box;
+  transition: border-radius 180ms ease;
+}
+
+.search-container--with-results {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+
 }
 
 /* текст */
@@ -686,25 +708,27 @@ right: 42px;
 /* Результаты поиска */
 .search-results {
   position: absolute;
-  top: calc(100% + 8px);
+  top: 100%;
   left: 0;
   right: 0;
   background: #ffffff;
-  border-radius: 12px;
-  box-shadow: 0 4px 35px rgba(0, 0, 0, 0.1);
+  border-radius: 0 0 22px 22px;
+  box-shadow: none;
   max-height: 300px;
   overflow-y: auto;
   z-index: 21;
+  padding: 12px 18px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-sizing: border-box;
 }
 
 .search-result-item {
-  padding: 12px 18px;
-  border-bottom: 1px solid #e7e8f0;
   display: flex;
   justify-content: space-between;
   align-items: center;
   cursor: pointer;
-  transition: background-color 0.2s ease;
 }
 
 .search-result-item:last-child {
@@ -712,7 +736,11 @@ right: 42px;
 }
 
 .search-result-item:hover {
-  background-color: #f5f5f7;
+  background-color: transparent;
+}
+
+.search-result-item:hover .search-result-name {
+  text-decoration: underline;
 }
 
 .search-result-name {
