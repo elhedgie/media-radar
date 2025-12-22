@@ -86,15 +86,20 @@ export default function App() {
   const handleToggleFilterOption = (id: string) => {
     setActiveFilter((prev) => {
       const s = new Set(prev);
-      if (id === "all") return ["all"];
-      s.delete("all");
+      if (id === "all") {
+        const res = ["all"];
+        if (s.has("warm")) res.push("warm");
+        return res;
+      }
+      if (id !== "warm") s.delete("all");
       if (id === "warm") {
         if (s.has("warm")) s.delete("warm");
         else s.add("warm");
       } else if (id === "media" || id === "tg") {
+        const opposite = id === "media" ? "tg" : "media";
         if (s.has(id)) s.delete(id);
         else {
-          s.delete(id === "media" ? "tg" : "media");
+          s.delete(opposite);
           s.add(id);
         }
       } else {

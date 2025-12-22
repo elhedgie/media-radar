@@ -49,12 +49,13 @@
   background-color: white;
   border-radius: 999px; /* по умолчанию круглый */
   z-index: 80; /* над доской */
-  width: 266px; /* ширина меню из макета */
+  width: unset; /* ширина меню из макета */
   height: 43px;
   font-weight: 700;
 }
 
 .toolbar--open {
+  width: 266px; /* ширина меню из макета */
   border-radius: 20px; /* при открытом меню скругление 20px */
     padding: 20px; /* отступы как в макете */
   height: unset;
@@ -405,6 +406,7 @@
   flex-direction: column;
   gap: 1.5rem;
   position: absolute;
+    font-size: 13px;
 }
 
 .details-modal__header {
@@ -416,20 +418,19 @@
 
 .details-modal__type {
   margin: 0;
-  font-size: 0.95rem;
-  color: #7d7f92;
-  font-weight: 500;
+  font-size: 13px;
 }
 
 .details-modal__header h2 {
-  margin: 0.15rem 0 0;
-  font-size: clamp(1.65rem, 4vw, 2.3rem);
+  margin: 0;
+  font-size: 18px;
   color: #1c1f2d;
 }
 
 .details-modal__header-buttons {
   display: inline-flex;
   gap: 0.75rem;
+  margin-top: -4px;
 }
 
 .details-modal__icon-button {
@@ -491,7 +492,7 @@
 .details-meta__left {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 20px;
   align-items: flex-start;
 }
 
@@ -515,27 +516,27 @@
 
 .details-meta__role {
   margin: 0;
-  font-size: 0.85rem;
+  /* font-size: 0.85rem; */
   color: #9ea2b5;
 }
 
 .details-meta__name {
   margin: 0.15rem 0 0;
-  font-size: 1.05rem;
+  /* font-size: 1.05rem; */
   /* font-weight: 600; */
   color: #1f2233;
 }
 
 .details-label {
   margin: 0;
-  font-size: 0.85rem;
+  /* font-size: 0.85rem; */
   letter-spacing: 0.01em;
   color: #9194a5;
 }
 
 .details-value {
   margin: 0.2rem 0 0;
-  font-size: 1rem;
+  /* font-size: 1rem; */
   /* font-weight: 600; */
   color: #1f2233;
 }
@@ -544,7 +545,7 @@
   margin: 0;
   color: #1f2233;
   line-height: 1.55;
-  font-size: 0.98rem;
+  /* font-size: 0.98rem; */
 }
 
 /* Info stack for holdings (three columns on desktop, stacked on mobile) */
@@ -575,7 +576,7 @@
 
 .details-stat-label {
   margin: 0;
-  font-size: 0.85rem;
+  /* font-size: 0.85rem; */
   color: #9ea2b5;
 }
 
@@ -596,7 +597,7 @@
 
 .details-section-title {
   margin: 0 0 0.35rem;
-  font-size: 0.92rem;
+  /* font-size: 0.92rem; */
   color: #9ea2b5;
   /* font-weight: 600; */
 }

@@ -1,8 +1,17 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+@font-face {
+  font-family: "Golos Text";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("/fonts/golos-text_vf.woff2") format("woff2-variations"),
+    url("/fonts/golos-text_vf.woff2") format("woff2"),
+    url("/fonts/golos-text_vf.woff") format("woff");
+}
 
 :root {
-  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
-    sans-serif;
+  font-family: "Golos Text", system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+  font-size: 18px;
   line-height: 1.4;
   font-weight: 400;
   color: #1c2a44;

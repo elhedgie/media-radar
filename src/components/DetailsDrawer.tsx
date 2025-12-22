@@ -36,10 +36,9 @@ export const DetailsDrawer: FC<DetailsDrawerProps> = ({ holding, onClose }) => {
         <header className={styles["details-modal__header"]}>
           <div>
             <h2>{holding.name}</h2>
-            {(holding.subscribers != null ||
-              (holding.link || "").includes("t.me")) && (
-              <p className={styles["details-modal__type"]}>Telegram-канал</p>
-            )}
+            <p className={styles["details-modal__type"]}>
+              {isTelegram ? "Telegram-канал" : "Холдинг"}
+            </p>
           </div>
 
           <div className={styles["details-modal__header-buttons"]}>
@@ -47,9 +46,20 @@ export const DetailsDrawer: FC<DetailsDrawerProps> = ({ holding, onClose }) => {
               className={styles["details-modal__icon-button"]}
               aria-label="Открыть карточку в новом окне"
             >
-              <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
-                <path d="M7 19L19 7" stroke="#1E1F27" strokeWidth="1.6" />
-                <path d="M11 7H19V15" stroke="#1E1F27" strokeWidth="1.6" />
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M14.9165 0.895491L0.89497 14.917M14.9165 0.895491L14.9165 14.917M14.9165 0.895491L0.89497 0.895491"
+                  stroke="#262628"
+                  stroke-width="1.79"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
               </svg>
             </button>
             <button
@@ -57,11 +67,32 @@ export const DetailsDrawer: FC<DetailsDrawerProps> = ({ holding, onClose }) => {
               aria-label="Закрыть"
               onClick={onClose}
             >
-              <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-                <path
-                  d="M5 5L17 17M17 5L5 17"
-                  stroke="#1E1F27"
-                  strokeWidth="1.6"
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <line
+                  x1="1.26572"
+                  y1="0.894531"
+                  x2="14.6623"
+                  y2="14.2911"
+                  stroke="#262628"
+                  stroke-width="1.79"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+                <line
+                  x1="14.6621"
+                  y1="1.26963"
+                  x2="1.26557"
+                  y2="14.6662"
+                  stroke="#262628"
+                  stroke-width="1.79"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
                 />
               </svg>
             </button>

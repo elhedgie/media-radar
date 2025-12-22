@@ -214,8 +214,15 @@ export const SearchBar: FC<SearchBarProps> = ({
     setResults(filtered.map(({ tokens, ...rest }) => rest));
   }, [searchQuery, allItems]);
 
+  const hasResults = results.length > 0;
+
   return (
-    <div className={styles["search-container"]} ref={containerRef}>
+    <div
+      className={`${styles["search-container"]} ${
+        hasResults ? styles["search-container--with-results"] : ""
+      }`}
+      ref={containerRef}
+    >
       <input
         type="text"
         className={styles["search-input"]}
@@ -246,7 +253,7 @@ export const SearchBar: FC<SearchBarProps> = ({
       </div>
 
       {/* Список результатов поиска */}
-      {results.length > 0 && (
+      {hasResults && (
         <div className={styles["search-results"]}>
           {results.map((result) => (
             <div

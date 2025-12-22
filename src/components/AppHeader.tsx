@@ -45,8 +45,13 @@ export const AppHeader: FC<AppHeaderProps> = ({
       <header className={styles["app__header"]}>
         <div className={styles["app__header-left"]}>
           {(() => {
-            const selected =
-              filterOptions.find((o) => o.active)?.label ?? "Все";
+            const activeOptions = filterOptions.filter((o) => o.active);
+            let selectedLabel = "Все";
+            if (activeOptions.length === 1) {
+              selectedLabel = activeOptions[0].label;
+            } else if (activeOptions.length > 1) {
+              selectedLabel = `${activeOptions.length} фильтра`;
+            }
             return (
               <FilterDropdown
                 isOpen={isFilterOpen}
@@ -54,7 +59,7 @@ export const AppHeader: FC<AppHeaderProps> = ({
                 onClose={onCloseFilter}
                 options={filterOptions}
                 onToggleOption={onToggleFilterOption}
-                selectedLabel={selected}
+                selectedLabel={selectedLabel}
               />
             );
           })()}
