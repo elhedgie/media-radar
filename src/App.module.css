@@ -59,7 +59,8 @@
   border-radius: 20px; /* при открытом меню скругление 20px */
     padding: 20px; /* отступы как в макете */
   height: unset;
-
+  top: -14px;
+  left: -2px;
 }
 
 .toolbar__dropdown {
@@ -69,7 +70,7 @@
   background: #ffffff;
   padding: 0 18px;
   margin: 0;
-  font-size: 1.05rem;
+  font-size: 18px;
   font-weight: 700;
   color: #000000;
   display: inline-flex;
