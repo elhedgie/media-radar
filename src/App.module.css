@@ -238,6 +238,7 @@
   .radar-board {
     height: calc(100vh - 240px);
     min-height: calc(100vh - 240px);
+    -webkit-filter: blur(0);
   }
 }
 
@@ -433,6 +434,10 @@
   gap: 1.5rem;
   position: absolute;
     font-size: 13px;
+}
+
+.details-modal__grabber {
+  display: none;
 }
 
 .details-modal__header {
@@ -850,5 +855,33 @@ font-size: 5px;}
   .toolbar__zoom button svg {
     width: 25px;
     height: 25px;
+  }
+
+  .details-modal {
+    position: relative;
+    width: 100vw;
+    max-width: 100vw;
+    height: 100vh;
+    border-radius: 24px 24px 0 0;
+    box-shadow: 0 -20px 40px rgba(17, 23, 46, 0.12);
+    transform: translateY(65vh);
+    transition: transform 240ms ease, box-shadow 240ms ease;
+    will-change: transform;
+  }
+
+  .details-modal--expanded {
+    transform: translateY(0);
+  }
+
+  .details-modal__grabber {
+    display: block;
+    width: 48px;
+    height: 5px;
+    border-radius: 999px;
+    background: #d7d9e2;
+    margin: 12px auto 6px;
+    cursor: grab;
+    touch-action: none;
+    pointer-events: auto;
   }
 }

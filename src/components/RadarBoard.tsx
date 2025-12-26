@@ -235,8 +235,7 @@ export const RadarBoard: FC<RadarBoardProps> = ({
         // determine target scale step
         let target = prev.s;
         if (Math.abs(prev.s - 1) < EPS) target = SCALE_1;
-        else if (Math.abs(prev.s - SCALE_1) < EPS)
-          target = EFFECTIVE_SCALE_2;
+        else if (Math.abs(prev.s - SCALE_1) < EPS) target = EFFECTIVE_SCALE_2;
         else target = prev.s;
 
         if (target === prev.s) return prev;
@@ -391,8 +390,7 @@ export const RadarBoard: FC<RadarBoardProps> = ({
               if (node) {
                 const targetScale = 1;
                 const offsetX = isMobile ? 0 : 250;
-                const tx =
-                  viewportWidth / 2 - node.cx * targetScale - offsetX;
+                const tx = viewportWidth / 2 - node.cx * targetScale - offsetX;
                 const ty = viewportHeight / 2 - node.cy * targetScale;
                 animateTo({ tx, ty, s: targetScale });
                 return prev;
@@ -920,6 +918,8 @@ export const RadarBoard: FC<RadarBoardProps> = ({
                           lineHeight: 1.2,
                           padding: "2px 6px",
                           cursor: "pointer",
+                          fontSmooth: "always",
+                          WebkitFontSmoothing: "antialiased",
                         }}
                         title={item.text}
                         onClick={(e) => {
@@ -928,7 +928,7 @@ export const RadarBoard: FC<RadarBoardProps> = ({
                           const raw = item.text;
                           const match = findHoldingForLabel(raw);
                           // debug logging to help trace mismatches
-                           
+
                           console.log("RadarBoard: item click", {
                             raw,
                             normalized: normalize(raw),
@@ -976,7 +976,7 @@ export const RadarBoard: FC<RadarBoardProps> = ({
                             keyTelegrams: undefined,
                             otherAssets: undefined,
                           };
-                           
+
                           console.log(
                             "RadarBoard: opening synthetic holding",
                             synthetic.id
