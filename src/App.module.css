@@ -500,6 +500,7 @@
   display: flex;
   align-items: flex-end;
   justify-content: flex-end;
+  pointer-events: none;
 }
 
 /* Когда открыта модалка, опускаем хедерные элементы под неё */
@@ -522,7 +523,7 @@
 /* Allow interactions with the board beneath the modal: the overlay itself
    should not block pointer events except for the modal content. This
    lets users click other telegram labels without closing the drawer. */
-.details-overlay {
+.details-modal {
   pointer-events: auto;
 }
 

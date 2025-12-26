@@ -182,10 +182,7 @@ export const RadarBoard: FC<RadarBoardProps> = ({
 
   const SCALE_1 = ZOOM_DIAMETER_1 / BASE_DIAMETER;
   const SCALE_2 = ZOOM_DIAMETER_2 / BASE_DIAMETER;
-  const MOBILE_LEVEL3_FACTOR = 0.7;
-  const EFFECTIVE_SCALE_2 = isMobile
-    ? 1 + (SCALE_2 - 1) * MOBILE_LEVEL3_FACTOR
-    : SCALE_2;
+  const EFFECTIVE_SCALE_2 = isMobile ? SCALE_1 : SCALE_2;
 
   // Высота доски: нужна для стабильного центрирования по Y
   const computeBoardHeight = (nodesList: PositionedNode[]) => {
@@ -234,9 +231,13 @@ export const RadarBoard: FC<RadarBoardProps> = ({
         const EPS = 0.0001;
         // determine target scale step
         let target = prev.s;
-        if (Math.abs(prev.s - 1) < EPS) target = SCALE_1;
-        else if (Math.abs(prev.s - SCALE_1) < EPS) target = EFFECTIVE_SCALE_2;
-        else target = prev.s;
+        if (isMobile) {
+          if (Math.abs(prev.s - 1) < EPS) target = EFFECTIVE_SCALE_2;
+        } else {
+          if (Math.abs(prev.s - 1) < EPS) target = SCALE_1;
+          else if (Math.abs(prev.s - SCALE_1) < EPS)
+            target = EFFECTIVE_SCALE_2;
+        }
 
         if (target === prev.s) return prev;
 
@@ -340,6 +341,9 @@ export const RadarBoard: FC<RadarBoardProps> = ({
     if (typeof zoomOutTrigger === "number") {
       updateTransform((prev) => {
         const EPS = 0.0001;
+        if (isMobile) {
+          return { tx: 0, ty: 0, s: 1 };
+        }
         if (Math.abs(prev.s - EFFECTIVE_SCALE_2) < EPS) {
           try {
             const board = boardRef?.current;
@@ -560,6 +564,10 @@ export const RadarBoard: FC<RadarBoardProps> = ({
   // ---------- логический zoomLevel (1 / 2 / 3) ----------
   const zoomLevel: 1 | 2 | 3 = (() => {
     const EPS = 0.0001;
+    if (isMobile) {
+      if (transform.s >= EFFECTIVE_SCALE_2 - EPS) return 2;
+      return 1;
+    }
     if (transform.s >= EFFECTIVE_SCALE_2 - EPS) return 3;
     if (transform.s >= SCALE_1 - EPS) return 2;
     return 1;
@@ -584,7 +592,8 @@ export const RadarBoard: FC<RadarBoardProps> = ({
   const getNodeContent = (node: PositionedNode): DistributedItem[] => {
     if (zoomLevel === 1) return [];
 
-    const level: ZoomLevel = zoomLevel === 2 ? 2 : 3;
+    const level: ZoomLevel =
+      isMobile && zoomLevel === 2 ? 3 : zoomLevel === 2 ? 2 : 3;
     // filter behaviour:
     // - activeFilter === 'tg'  => show only telegrams for all nodes, except keep full content for `tg-channels`
     // - activeFilter === 'media' => show only assets (suppress telegrams) for all nodes

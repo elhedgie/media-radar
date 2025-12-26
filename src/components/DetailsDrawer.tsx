@@ -97,39 +97,41 @@ export const DetailsDrawer: FC<DetailsDrawerProps> = ({ holding, onClose }) => {
     setDragOffset(0);
   };
 
-  // Общий обработчик для pointer и touch
-  const handlePointerDown = (e: React.PointerEvent) => {
-    handleStart(e.clientY);
-    modalRef.current?.setPointerCapture(e.pointerId);
-  };
-
-  const handlePointerMove = (e: React.PointerEvent) => {
-    handleMove(e.clientY);
-  };
-
-  const handlePointerUp = (e: React.PointerEvent) => {
-    handleEnd(e.clientY);
-    modalRef.current?.releasePointerCapture(e.pointerId);
-  };
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    const touch = e.touches[0];
-    if (touch) handleStart(touch.clientY);
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    const touch = e.touches[0];
-    if (touch) {
-      e.preventDefault(); // важно для предотвращения скролла
-      handleMove(touch.clientY);
-    }
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    const touch = e.changedTouches[0];
-    if (touch) handleEnd(touch.clientY);
-    else if (lastYRef.current !== null) handleEnd(lastYRef.current);
-  };
+  const mobileHandlers = isMobileView
+    ? {
+        onPointerDown: (e: React.PointerEvent) => {
+          handleStart(e.clientY);
+          modalRef.current?.setPointerCapture(e.pointerId);
+        },
+        onPointerMove: (e: React.PointerEvent) => {
+          handleMove(e.clientY);
+        },
+        onPointerUp: (e: React.PointerEvent) => {
+          handleEnd(e.clientY);
+          modalRef.current?.releasePointerCapture(e.pointerId);
+        },
+        onPointerCancel: (e: React.PointerEvent) => {
+          handleEnd(e.clientY);
+          modalRef.current?.releasePointerCapture(e.pointerId);
+        },
+        onTouchStart: (e: React.TouchEvent) => {
+          const touch = e.touches[0];
+          if (touch) handleStart(touch.clientY);
+        },
+        onTouchMove: (e: React.TouchEvent) => {
+          const touch = e.touches[0];
+          if (touch) {
+            e.preventDefault(); // важно для предотвращения скролла
+            handleMove(touch.clientY);
+          }
+        },
+        onTouchEnd: (e: React.TouchEvent) => {
+          const touch = e.changedTouches[0];
+          if (touch) handleEnd(touch.clientY);
+          else if (lastYRef.current !== null) handleEnd(lastYRef.current);
+        },
+      }
+    : {};
 
   // Вычисляем текущую позицию модалки
   const collapsedOffset = isMobileView ? window.innerHeight * 0.65 : 0;
@@ -144,7 +146,6 @@ export const DetailsDrawer: FC<DetailsDrawerProps> = ({ holding, onClose }) => {
       className={styles["details-overlay"]}
       role="presentation"
       data-prevent-search-close="true"
-      onClick={onClose}
     >
       <article
         ref={modalRef}
@@ -160,15 +161,7 @@ export const DetailsDrawer: FC<DetailsDrawerProps> = ({ holding, onClose }) => {
             ? "none"
             : "transform 0.42s cubic-bezier(0.32, 0, 0.07, 1)",
         }}
-        // Pointer events (мышь + стилус)
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerUp}
-        // Touch events (мобильные)
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
+        {...mobileHandlers}
       >
         {/* Граббер — теперь только визуальный индикатор */}
         <div className={styles["details-modal__grabber"]} />
