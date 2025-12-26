@@ -182,6 +182,10 @@ export const RadarBoard: FC<RadarBoardProps> = ({
 
   const SCALE_1 = ZOOM_DIAMETER_1 / BASE_DIAMETER;
   const SCALE_2 = ZOOM_DIAMETER_2 / BASE_DIAMETER;
+  const MOBILE_LEVEL3_FACTOR = 0.7;
+  const EFFECTIVE_SCALE_2 = isMobile
+    ? 1 + (SCALE_2 - 1) * MOBILE_LEVEL3_FACTOR
+    : SCALE_2;
 
   // Высота доски: нужна для стабильного центрирования по Y
   const computeBoardHeight = (nodesList: PositionedNode[]) => {
@@ -231,7 +235,8 @@ export const RadarBoard: FC<RadarBoardProps> = ({
         // determine target scale step
         let target = prev.s;
         if (Math.abs(prev.s - 1) < EPS) target = SCALE_1;
-        else if (Math.abs(prev.s - SCALE_1) < EPS) target = SCALE_2;
+        else if (Math.abs(prev.s - SCALE_1) < EPS)
+          target = EFFECTIVE_SCALE_2;
         else target = prev.s;
 
         if (target === prev.s) return prev;
@@ -311,7 +316,7 @@ export const RadarBoard: FC<RadarBoardProps> = ({
         const s0 = prev.s;
         let s1 = s0 * zoomFactor;
         if (s1 < 1) s1 = 1;
-        if (s1 > SCALE_2) s1 = SCALE_2;
+        if (s1 > EFFECTIVE_SCALE_2) s1 = EFFECTIVE_SCALE_2;
         if (Math.abs(s1 - s0) < 1e-4) return prev;
 
         // координаты содержимого, которые сейчас под курсором
@@ -329,14 +334,14 @@ export const RadarBoard: FC<RadarBoardProps> = ({
     // boardEl.addEventListener("wheel", onWheel, { passive: false });
     return () => boardEl.removeEventListener("wheel", onWheel);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [boardRef, SCALE_2]);
+  }, [boardRef, EFFECTIVE_SCALE_2]);
 
   // zoom out: SCALE_2 -> SCALE_1 -> 1
   useEffect(() => {
     if (typeof zoomOutTrigger === "number") {
       updateTransform((prev) => {
         const EPS = 0.0001;
-        if (Math.abs(prev.s - SCALE_2) < EPS) {
+        if (Math.abs(prev.s - EFFECTIVE_SCALE_2) < EPS) {
           try {
             const board = boardRef?.current;
             if (board && nodes && nodes.length) {
@@ -414,7 +419,7 @@ export const RadarBoard: FC<RadarBoardProps> = ({
     if (!board) return;
     const wrapper = (board.parentElement as HTMLElement) || board;
     const rect = wrapper.getBoundingClientRect();
-    const targetScale = SCALE_2;
+    const targetScale = EFFECTIVE_SCALE_2;
     const offsetX = isMobile ? 0 : 250;
     const tx = rect.width / 2 - node.cx * targetScale - offsetX;
     const ty = rect.height / 2 - node.cy * targetScale;
@@ -557,7 +562,7 @@ export const RadarBoard: FC<RadarBoardProps> = ({
   // ---------- логический zoomLevel (1 / 2 / 3) ----------
   const zoomLevel: 1 | 2 | 3 = (() => {
     const EPS = 0.0001;
-    if (transform.s >= SCALE_2 - EPS) return 3;
+    if (transform.s >= EFFECTIVE_SCALE_2 - EPS) return 3;
     if (transform.s >= SCALE_1 - EPS) return 2;
     return 1;
   })();
@@ -669,7 +674,7 @@ export const RadarBoard: FC<RadarBoardProps> = ({
     }
 
     // кликом из первого уровня сразу уходим в 3-й
-    const targetScale = SCALE_2;
+    const targetScale = EFFECTIVE_SCALE_2;
     const wrapper = (board.parentElement as HTMLElement) || board;
     const wrapperRect = wrapper.getBoundingClientRect();
     const offsetX = isMobile ? 0 : 250;

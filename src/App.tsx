@@ -158,7 +158,11 @@ export default function App() {
 
   return (
     <>
-      <div className={styles["app"]}>
+      <div
+        className={`${styles["app"]} ${
+          selectedHolding ? styles["app--modal-open"] : ""
+        }`}
+      >
         <AppHeader
           isFilterOpen={isFilterOpen}
           onToggleFilter={() => setIsFilterOpen((prev) => !prev)}

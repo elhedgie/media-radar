@@ -8,6 +8,8 @@
   flex-direction: column;
   gap: 1.5rem;
   overflow: hidden;
+  position: relative;
+  isolation: isolate;
 }
 
 .app__header {
@@ -21,7 +23,8 @@
 .app__header {
   position: sticky;
   top: 0;
-  z-index: 400;
+  z-index: 2000;
+  isolation: isolate;
 }
 
 .app__header-left {
@@ -47,7 +50,7 @@
   top: 0;
   background-color: white;
   border-radius: 999px; /* по умолчанию круглый */
-  z-index: 180; /* над доской и под хедером */
+  z-index: 850; /* над доской, под хедером */
   width: unset; /* ширина меню из макета */
   height: 43px;
   font-weight: 700;
@@ -160,7 +163,7 @@
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  z-index: 360;
+  z-index: 880;
   pointer-events: auto;
 }
 
@@ -188,7 +191,7 @@
   align-items: center;
   gap: 0.75rem;
   position: relative; /* anchor for absolute-positioned search */
-  z-index: 360;
+  z-index: 880;
 }
 
 .icon-button {
@@ -227,6 +230,8 @@
   justify-content: center; /* центрируем доску по горизонтали */
   background: #ffffff; /* по бокам остаётся белое пространство */
     align-items: center;
+  position: relative;
+  z-index: 1;
 }
 
 @media (max-width: 900px) {
@@ -252,6 +257,7 @@
   transform-style: preserve-3d;
   contain: paint;
   touch-action: none;
+  z-index: 0;
 }
 
 /* Запрет выделения текста при перетаскивании доски */
@@ -485,10 +491,27 @@
   right: 0;
   bottom: 0;
   left: 0;
-  z-index: 500; /* над хедером, поиском и меню */
+  z-index: 1000; /* над хедером, поиском и меню */
   display: flex;
   align-items: flex-end;
   justify-content: flex-end;
+}
+
+/* Когда открыта модалка, опускаем хедерные элементы под неё */
+.app--modal-open .app__header {
+  z-index: 200;
+}
+.app--modal-open .toolbar {
+  z-index: 150;
+}
+.app--modal-open .toolbar__zoom {
+  z-index: 180;
+}
+.app--modal-open .app__header-right {
+  z-index: 180;
+}
+.app--modal-open .search-container {
+  z-index: 200;
 }
 
 /* Allow interactions with the board beneath the modal: the overlay itself
@@ -645,7 +668,7 @@
   right: 0;
   top: 50%;
   transform: translateY(-50%) translateZ(0);
-  z-index: 220;
+  z-index: 900;
   box-sizing: border-box;
   transition: border-radius 180ms ease;
   backface-visibility: hidden;
@@ -758,9 +781,15 @@ right: 42px;
   .app {
     padding: 10px;
     gap: 0.75rem;
+    padding-top: 80px; /* reserve space for fixed header on mobile */
   }
 
   .app__header {
+    position: fixed;
+    left: 24px;
+    right: 24px;
+    top: 24px;
+    z-index: 2000;
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
@@ -779,6 +808,10 @@ font-size: 5px;}
   .radar-wrapper {
     align-items: flex-start;
   }
+  .filter-card ul {
+
+  gap: 1.45rem;
+}
 
   .toolbar__zoom {
     position: fixed;
@@ -787,7 +820,7 @@ font-size: 5px;}
     top: auto;
     bottom: 16px;
     transform: translate(-50%, 0);
-    z-index: 360;
+    z-index: 880;
     gap: 53px;
   }
 
