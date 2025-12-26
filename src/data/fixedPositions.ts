@@ -35,4 +35,36 @@ export const fixedPositions: Record<string, FixedPos> = {
   "tg-channels": { cx: 650, cy: 340 },
 };
 
+export const fixedMobilePositions: Record<string, FixedPos> = {
+  // ВГТРК
+  vgtrk: { cx: 300, cy: 140 },
+  // НМГ
+  nmg: { cx: 283, cy: 478 },
+  // Газпром-медиа
+  gazprom: { cx: 302, cy: 250 },
+  // МИА Россия Сегодня
+  ria: { cx: 285, cy: 366 },
+  // ТАСС
+  tass: { cx: 91, cy: 308 },
+
+  // Rambler&Co — нижний ряд слева
+  rambler: { cx: 92, cy: 84 },
+  // Shkulev Holding
+  shkulev: { cx: 209, cy: 62 },
+  // РБК
+  rbc: { cx: 178, cy: 503 },
+  // News Media Holding
+  "news-media": { cx: 197, cy: 281 },
+  // Коммерсантъ
+  kommersant: { cx: 65, cy: 197 },
+
+  // Комсомольская правда — третий ряд слева
+  kp: { cx: 171, cy: 392 },
+  // Москва Медиа
+  "msk-media": { cx: 80, cy: 454 },
+
+  // Новостные Telegram-каналы (акцентный)
+  "tg-channels": { cx: 174, cy: 167 },
+};
+
 export default fixedPositions;

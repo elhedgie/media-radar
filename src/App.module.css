@@ -21,8 +21,7 @@
 .app__header {
   position: sticky;
   top: 0;
-  z-index: 50;
-  background: transparent;
+  z-index: 400;
 }
 
 .app__header-left {
@@ -48,10 +47,11 @@
   top: 0;
   background-color: white;
   border-radius: 999px; /* по умолчанию круглый */
-  z-index: 80; /* над доской */
+  z-index: 180; /* над доской и под хедером */
   width: unset; /* ширина меню из макета */
   height: 43px;
   font-weight: 700;
+  pointer-events: auto;
 }
 
 .toolbar--open {
@@ -104,7 +104,7 @@
  width: 100%;
   background: #ffffff;
   padding: 0;
-  z-index: 100; /* над доской */
+  z-index: 420; /* над доской и хедером */
 }
 
 .filter-card ul {
@@ -149,7 +149,7 @@
   inset: 0;
   border: none;
   background: transparent;
-  z-index: 5;
+  z-index: 410;
   cursor: default;
 }
 
@@ -160,7 +160,8 @@
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  z-index: 70;
+  z-index: 360;
+  pointer-events: auto;
 }
 
 .toolbar__zoom button {
@@ -175,6 +176,7 @@
   line-height: 1;
   display: grid;
   place-items: center;
+  touch-action: manipulation;
 }
 
 .toolbar__zoom button:first-of-type {
@@ -186,6 +188,7 @@
   align-items: center;
   gap: 0.75rem;
   position: relative; /* anchor for absolute-positioned search */
+  z-index: 360;
 }
 
 .icon-button {
@@ -219,10 +222,18 @@
 .radar-wrapper {
   flex: 1;
   min-height: 0;
+  width: 100%;
   display: flex;
   justify-content: center; /* центрируем доску по горизонтали */
   background: #ffffff; /* по бокам остаётся белое пространство */
     align-items: center;
+}
+
+@media (max-width: 900px) {
+  .radar-board {
+    height: calc(100vh - 240px);
+    min-height: calc(100vh - 240px);
+  }
 }
 
 .radar-board {
@@ -236,6 +247,11 @@
   margin: 0 auto; /* центрирование */
   transform-origin: 0 0;
   transition: transform 420ms cubic-bezier(.22,.9,.33,1);
+  will-change: transform;
+  backface-visibility: hidden;
+  transform-style: preserve-3d;
+  contain: paint;
+  touch-action: none;
 }
 
 /* Запрет выделения текста при перетаскивании доски */
@@ -245,6 +261,7 @@
   -moz-user-select: none;
   -ms-user-select: none;
   user-select: none;
+  -webkit-tap-highlight-color: transparent; /* убрать затемнение при тапе на мобильных */
 }
 
 .radar-node {
@@ -259,10 +276,12 @@
   color: #262628;
   font-weight: 600;
   font-size: 18px;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%) translateZ(0);
   overflow: hidden;
   /* No transition: nodes placed immediately at final positions */
   transition: background-color 400ms ease;
+  will-change: transform;
+  backface-visibility: hidden;
 }
 
 .radar-node:hover {
@@ -466,7 +485,7 @@
   right: 0;
   bottom: 0;
   left: 0;
-  z-index: 100;
+  z-index: 500; /* над хедером, поиском и меню */
   display: flex;
   align-items: flex-end;
   justify-content: flex-end;
@@ -476,9 +495,6 @@
    should not block pointer events except for the modal content. This
    lets users click other telegram labels without closing the drawer. */
 .details-overlay {
-  pointer-events: none;
-}
-.details-modal {
   pointer-events: auto;
 }
 
@@ -609,32 +625,7 @@
   display: none;
 }
 
-@media (max-width: 720px) {
-  .app {
-    padding: 1.5rem;
-  }
 
-  .app__header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .app__header-right {
-    margin-left: 0;
-  }
-
-  .radar-node {
-    width: clamp(120px, 25vw, 160px);
-  }
-
-  /* On small screens toolbar should flow normally, not absolute-centered */
-  .toolbar__zoom {
-    position: static;
-    transform: none;
-    left: auto;
-    top: auto;
-  }
-}
 
 
 /* белая капсула */
@@ -653,10 +644,12 @@
   position: absolute; /* overlay, so it doesn't push header content */
   right: 0;
   top: 50%;
-  transform: translateY(-50%);
-  z-index: 20;
+  transform: translateY(-50%) translateZ(0);
+  z-index: 220;
   box-sizing: border-box;
   transition: border-radius 180ms ease;
+  backface-visibility: hidden;
+  will-change: transform;
 }
 
 .search-container--with-results {
@@ -759,4 +752,70 @@ right: 42px;
   padding: 4px 8px;
   border-radius: 4px;
   margin-left: 12px;
+}
+
+@media (max-width: 900px) {
+  .app {
+    padding: 10px;
+    gap: 0.75rem;
+  }
+
+  .app__header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+.radar-node  {
+font-size: 10px;}
+.radar-node__item--asset {
+font-size: 5px;}
+  .app__header-left {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .radar-wrapper {
+    align-items: flex-start;
+  }
+
+  .toolbar__zoom {
+    position: fixed;
+    left: 50%;
+    right: auto;
+    top: auto;
+    bottom: 16px;
+    transform: translate(-50%, 0);
+    z-index: 360;
+    gap: 53px;
+  }
+
+  .app__header-right {
+    margin-left: 0;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+  }
+
+  .search-container {
+    position: relative;
+    right: auto;
+    top: auto;
+    transform: none;
+    align-self: center;
+    width: 190px;
+  }
+
+  .toolbar__zoom button {
+    width: 69px;
+    height: 69px;
+    border: 2px solid #e3e3e8;
+    font-size: 1.35rem;
+    background: #fff;
+  }
+  .toolbar__zoom button svg {
+    width: 25px;
+    height: 25px;
+  }
 }

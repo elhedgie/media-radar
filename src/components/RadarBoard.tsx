@@ -3,7 +3,7 @@ import { useRef, useEffect, useState } from "react";
 import styles from "../App.module.css";
 import type { PositionedNode } from "../types";
 import type { HoldingNode } from "../data/holdings";
-import { manualLayout } from "../data/manualLayout";
+import { manualLayout, manualMobileLayout } from "../data/manualLayout";
 import { warmSet } from "../data/warmContacts";
 import { tgChannels, tgChannelNameMap } from "../data/holdings";
 
@@ -32,6 +32,7 @@ type DistributedItem = {
 type RadarBoardProps = {
   nodes: PositionedNode[];
   diameter: number;
+  diameters?: { level1: number; level2: number; level3: number };
   onSelect: (holding: HoldingNode | null) => void;
   holdingsPool: HoldingNode[];
   boardRef: RefObject<HTMLDivElement | null>;
@@ -45,11 +46,13 @@ type RadarBoardProps = {
   highlightNodeId?: string | null;
   highlightItemLabel?: string | null;
   highlightChannelId?: string | null;
+  isMobile?: boolean;
 };
 
 export const RadarBoard: FC<RadarBoardProps> = ({
   nodes,
   diameter,
+  diameters,
   onSelect,
   holdingsPool,
   boardRef,
@@ -63,9 +66,45 @@ export const RadarBoard: FC<RadarBoardProps> = ({
   highlightNodeId,
   highlightItemLabel,
   highlightChannelId,
+  isMobile,
 }) => {
   // локальное состояние трансформации (tx, ty, scale)
   const [transform, setTransform] = useState({ tx: 0, ty: 0, s: 1 });
+  const clampTransform = (t: { tx: number; ty: number; s: number }) => {
+    const board = boardRef?.current;
+    const wrapper = board?.parentElement as HTMLElement | null;
+    if (!board || !wrapper) return t;
+    const rect = wrapper.getBoundingClientRect();
+    const boardHeight = board.offsetHeight * t.s;
+    const boardWidth = board.offsetWidth * t.s;
+    const padding = 0;
+
+    const minTx = rect.width - boardWidth + padding;
+    const maxTx = padding;
+    const minTy = rect.height - boardHeight + padding;
+    const maxTy = padding;
+
+    return {
+      tx: Math.min(Math.max(t.tx, minTx), maxTx),
+      ty: Math.min(Math.max(t.ty, minTy), maxTy),
+      s: t.s,
+    };
+  };
+
+  const updateTransform = (
+    next:
+      | { tx: number; ty: number; s: number }
+      | ((prev: { tx: number; ty: number; s: number }) => {
+          tx: number;
+          ty: number;
+          s: number;
+        })
+  ) => {
+    setTransform((prev) => {
+      const target = typeof next === "function" ? next(prev) : next;
+      return clampTransform(target);
+    });
+  };
   // анимация трансформации: плавный переход между состояниями
   const animReqRef = useRef<number | null>(null);
   const animStartRef = useRef<number>(0);
@@ -93,7 +132,7 @@ export const RadarBoard: FC<RadarBoardProps> = ({
       const target = animToRef.current!;
       const t = Math.min(1, (now - start) / ANIM_DURATION);
       const k = easeInOutCubic(t);
-      setTransform({
+      updateTransform({
         tx: from.tx + (target.tx - from.tx) * k,
         ty: from.ty + (target.ty - from.ty) * k,
         s: from.s + (target.s - from.s) * k,
@@ -112,6 +151,15 @@ export const RadarBoard: FC<RadarBoardProps> = ({
   const [forceVisibleId, setForceVisibleId] = useState<string | null>(null);
 
   // фиксированный размер шрифта для всех меток (используем в стилях ниже)
+  const getViewportSize = () => {
+    const board = boardRef?.current;
+    const wrapper = (board?.parentElement as HTMLElement) || board;
+    const rect = wrapper?.getBoundingClientRect();
+    return {
+      width: rect?.width || window.innerWidth,
+      height: rect?.height || computeBoardHeight(nodes),
+    };
+  };
 
   useEffect(() => {
     const t = setTimeout(() => setPoping(false), 800);
@@ -121,16 +169,16 @@ export const RadarBoard: FC<RadarBoardProps> = ({
   // Сброс трансформации при изменении внешнего триггера
   useEffect(() => {
     if (typeof resetZoomTrigger === "number") {
-      setTransform({ tx: 0, ty: 0, s: 1 });
+      updateTransform({ tx: 0, ty: 0, s: 1 });
       setForceVisibleId(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resetZoomTrigger]);
 
-  // Фиксированные уровни зума: базовый diameter (prop), 380 и 598 (как по ТЗ)
-  const BASE_DIAMETER = diameter; // 205
-  const ZOOM_DIAMETER_1 = 380;
-  const ZOOM_DIAMETER_2 = 598;
+  // Фиксированные уровни зума: базовый diameter (prop), можно переопределить через проп diameters
+  const BASE_DIAMETER = diameters?.level1 ?? diameter; // 205
+  const ZOOM_DIAMETER_1 = diameters?.level2 ?? 380;
+  const ZOOM_DIAMETER_2 = diameters?.level3 ?? 598;
 
   const SCALE_1 = ZOOM_DIAMETER_1 / BASE_DIAMETER;
   const SCALE_2 = ZOOM_DIAMETER_2 / BASE_DIAMETER;
@@ -138,8 +186,9 @@ export const RadarBoard: FC<RadarBoardProps> = ({
   // Высота доски: нужна для стабильного центрирования по Y
   const computeBoardHeight = (nodesList: PositionedNode[]) => {
     if (!nodesList || nodesList.length === 0) return 0;
-    const radius = diameter / 2;
+    const radius = BASE_DIAMETER / 2;
     const filterSetLocal = filterSet; // reuse current filter set
+
     const visibleNodes = (
       zoomLevel > 1
         ? nodesList.filter((node) => {
@@ -158,17 +207,26 @@ export const RadarBoard: FC<RadarBoardProps> = ({
               )
           )
     ) as PositionedNode[];
+
+    if (!visibleNodes.length) return BASE_DIAMETER + 40;
+
+    const minTop = visibleNodes.reduce(
+      (acc, n) => Math.min(acc, n.cy - radius),
+      Infinity
+    );
     const maxBottom = visibleNodes.reduce(
       (acc, n) => Math.max(acc, n.cy + radius),
       0
     );
-    return Math.ceil(maxBottom + 20);
+
+    const span = maxBottom - minTop;
+    return Math.ceil(span + 40);
   };
 
   // zoom in: 1 -> SCALE_1 -> SCALE_2 (stop at SCALE_2)
   useEffect(() => {
     if (typeof zoomInTrigger === "number") {
-      setTransform((prev) => {
+      updateTransform((prev) => {
         const EPS = 0.0001;
         // determine target scale step
         let target = prev.s;
@@ -181,11 +239,11 @@ export const RadarBoard: FC<RadarBoardProps> = ({
         try {
           const board = boardRef?.current;
           if (board && nodes && nodes.length) {
-            const fixedWidth = 1440; // стабильная ширина для логики зума
-            const fixedHeight = computeBoardHeight(nodes);
+            const { width: viewportWidth, height: viewportHeight } =
+              getViewportSize();
 
-            const centerScreenX = fixedWidth / 2;
-            const centerScreenY = fixedHeight / 2;
+            const centerScreenX = viewportWidth / 2;
+            const centerScreenY = viewportHeight / 2;
             const contentCenterX = (centerScreenX - prev.tx) / prev.s;
             const contentCenterY = (centerScreenY - prev.ty) / prev.s;
 
@@ -204,15 +262,18 @@ export const RadarBoard: FC<RadarBoardProps> = ({
 
             // if no good candidate found, fallback to selectedId
             let nodeToCenter: PositionedNode | undefined = undefined;
-            if (best && bestDist < Math.max(fixedWidth, fixedHeight) * 0.5) {
+            if (
+              best &&
+              bestDist < Math.max(viewportWidth, viewportHeight) * 0.5
+            ) {
               nodeToCenter = best;
             } else if (selectedId) {
               nodeToCenter = nodes.find((n) => n.id === selectedId);
             }
 
             if (nodeToCenter) {
-              const tx = fixedWidth / 2 - nodeToCenter.cx * target;
-              const ty = fixedHeight / 2 - nodeToCenter.cy * target;
+              const tx = viewportWidth / 2 - nodeToCenter.cx * target;
+              const ty = viewportHeight / 2 - nodeToCenter.cy * target;
               // плавная анимация к целевому состоянию
               animateTo({ tx, ty, s: target });
               return prev; // состояние обновится через анимацию
@@ -246,7 +307,7 @@ export const RadarBoard: FC<RadarBoardProps> = ({
       // чувствительность — настроена эмпирически
       const zoomFactor = Math.exp(delta * 0.0015);
 
-      setTransform((prev) => {
+      updateTransform((prev) => {
         const s0 = prev.s;
         let s1 = s0 * zoomFactor;
         if (s1 < 1) s1 = 1;
@@ -273,16 +334,16 @@ export const RadarBoard: FC<RadarBoardProps> = ({
   // zoom out: SCALE_2 -> SCALE_1 -> 1
   useEffect(() => {
     if (typeof zoomOutTrigger === "number") {
-      setTransform((prev) => {
+      updateTransform((prev) => {
         const EPS = 0.0001;
         if (Math.abs(prev.s - SCALE_2) < EPS) {
           try {
             const board = boardRef?.current;
             if (board && nodes && nodes.length) {
-              const fixedWidth = 1440;
-              const fixedHeight = computeBoardHeight(nodes);
-              const centerScreenX = fixedWidth / 2;
-              const centerScreenY = fixedHeight / 2;
+              const { width: viewportWidth, height: viewportHeight } =
+                getViewportSize();
+              const centerScreenX = viewportWidth / 2;
+              const centerScreenY = viewportHeight / 2;
               const contentCenterX = (centerScreenX - prev.tx) / prev.s;
               const contentCenterY = (centerScreenY - prev.ty) / prev.s;
 
@@ -301,8 +362,8 @@ export const RadarBoard: FC<RadarBoardProps> = ({
 
               if (best) {
                 const targetScale = SCALE_1;
-                const tx = fixedWidth / 2 - best.cx * targetScale;
-                const ty = fixedHeight / 2 - best.cy * targetScale;
+                const tx = viewportWidth / 2 - best.cx * targetScale;
+                const ty = viewportHeight / 2 - best.cy * targetScale;
                 animateTo({ tx, ty, s: targetScale });
                 return prev;
               }
@@ -319,13 +380,15 @@ export const RadarBoard: FC<RadarBoardProps> = ({
           try {
             const board = boardRef?.current;
             if (board && selectedId) {
-              const fixedWidth = 1440;
-              const fixedHeight = computeBoardHeight(nodes);
+              const { width: viewportWidth, height: viewportHeight } =
+                getViewportSize();
               const node = nodes.find((n) => n.id === selectedId);
               if (node) {
                 const targetScale = 1;
-                const tx = fixedWidth / 2 - node.cx * targetScale - 250;
-                const ty = fixedHeight / 2 - node.cy * targetScale;
+                const offsetX = isMobile ? 0 : 250;
+                const tx =
+                  viewportWidth / 2 - node.cx * targetScale - offsetX;
+                const ty = viewportHeight / 2 - node.cy * targetScale;
                 animateTo({ tx, ty, s: targetScale });
                 return prev;
               }
@@ -352,7 +415,8 @@ export const RadarBoard: FC<RadarBoardProps> = ({
     const wrapper = (board.parentElement as HTMLElement) || board;
     const rect = wrapper.getBoundingClientRect();
     const targetScale = SCALE_2;
-    const tx = rect.width / 2 - node.cx * targetScale - 250;
+    const offsetX = isMobile ? 0 : 250;
+    const tx = rect.width / 2 - node.cx * targetScale - offsetX;
     const ty = rect.height / 2 - node.cy * targetScale;
 
     setForceVisibleId(node.id);
@@ -368,11 +432,15 @@ export const RadarBoard: FC<RadarBoardProps> = ({
   const draggedRef = useRef(false);
   const suppressClickRef = useRef(false);
 
+  const beginDrag = (x: number, y: number) => {
+    isDraggingRef.current = true;
+    dragStartRef.current = { x, y };
+    dragOriginRef.current = { tx: transform.tx, ty: transform.ty };
+  };
+
   const handleMouseDown = (e: React.MouseEvent) => {
     if (transform.s <= 1) return;
-    isDraggingRef.current = true;
-    dragStartRef.current = { x: e.clientX, y: e.clientY };
-    dragOriginRef.current = { tx: transform.tx, ty: transform.ty };
+    beginDrag(e.clientX, e.clientY);
     window.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("mouseup", handleMouseUp);
   };
@@ -384,7 +452,7 @@ export const RadarBoard: FC<RadarBoardProps> = ({
     if (!draggedRef.current && Math.hypot(dx, dy) > 6) {
       draggedRef.current = true;
     }
-    setTransform((prev) => ({
+    updateTransform((prev) => ({
       ...prev,
       tx: dragOriginRef.current.tx + dx,
       ty: dragOriginRef.current.ty + dy,
@@ -395,6 +463,47 @@ export const RadarBoard: FC<RadarBoardProps> = ({
     isDraggingRef.current = false;
     window.removeEventListener("mousemove", handleMouseMove);
     window.removeEventListener("mouseup", handleMouseUp);
+    if (draggedRef.current) {
+      suppressClickRef.current = true;
+      setTimeout(() => {
+        suppressClickRef.current = false;
+      }, 200);
+      draggedRef.current = false;
+    }
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (transform.s <= 1) return;
+    const t = e.touches[0];
+    if (!t) return;
+    beginDrag(t.clientX, t.clientY);
+    window.addEventListener("touchmove", handleTouchMove, { passive: false });
+    window.addEventListener("touchend", handleTouchEnd);
+    window.addEventListener("touchcancel", handleTouchEnd);
+  };
+
+  const handleTouchMove = (e: TouchEvent) => {
+    if (!isDraggingRef.current) return;
+    const t = e.touches[0];
+    if (!t) return;
+    e.preventDefault();
+    const dx = t.clientX - dragStartRef.current.x;
+    const dy = t.clientY - dragStartRef.current.y;
+    if (!draggedRef.current && Math.hypot(dx, dy) > 6) {
+      draggedRef.current = true;
+    }
+    updateTransform((prev) => ({
+      ...prev,
+      tx: dragOriginRef.current.tx + dx,
+      ty: dragOriginRef.current.ty + dy,
+    }));
+  };
+
+  const handleTouchEnd = () => {
+    isDraggingRef.current = false;
+    window.removeEventListener("touchmove", handleTouchMove);
+    window.removeEventListener("touchend", handleTouchEnd);
+    window.removeEventListener("touchcancel", handleTouchEnd);
     if (draggedRef.current) {
       suppressClickRef.current = true;
       setTimeout(() => {
@@ -436,7 +545,7 @@ export const RadarBoard: FC<RadarBoardProps> = ({
 
     if (moved) {
       e.preventDefault();
-      setTransform((prev) => ({ ...prev, tx: newTx, ty: newTy }));
+      updateTransform((prev) => ({ ...prev, tx: newTx, ty: newTy }));
     }
   };
 
@@ -481,8 +590,10 @@ export const RadarBoard: FC<RadarBoardProps> = ({
 
     // кеш не используем — контент берём напрямую из manualLayout
 
-    // Берём статическую раскладку из `manualLayout` — если нет, возвращаем пустой список
-    const layout = manualLayout[node.id] ?? [];
+    // Берём статическую раскладку: для мобильных — отдельная карта,
+    // иначе — десктопная. Если нет, откатываемся к десктопной.
+    const layoutMap = isMobile ? manualMobileLayout : manualLayout;
+    const layout = layoutMap[node.id] ?? manualLayout[node.id] ?? [];
 
     // Подготовим набор ключевых активов для текущего холдинга
     const normalize = (s: string) =>
@@ -561,8 +672,9 @@ export const RadarBoard: FC<RadarBoardProps> = ({
     const targetScale = SCALE_2;
     const wrapper = (board.parentElement as HTMLElement) || board;
     const wrapperRect = wrapper.getBoundingClientRect();
+    const offsetX = isMobile ? 0 : 250;
 
-    const tx = wrapperRect.width / 2 - node.cx * targetScale - 250;
+    const tx = wrapperRect.width / 2 - node.cx * targetScale - offsetX;
     const ty = wrapperRect.height / 2 - node.cy * targetScale;
 
     animateTo({ tx, ty, s: targetScale });
@@ -581,11 +693,12 @@ export const RadarBoard: FC<RadarBoardProps> = ({
         className={styles["radar-board"]}
         ref={boardRef}
         style={{
-          height: `${computeBoardHeight(nodes)}px`,
-          transform: `translate(${transform.tx}px, ${transform.ty}px) scale(${transform.s})`,
+          height: `${computeBoardHeight(nodes) + 20}px`,
+          transform: `translate3d(${transform.tx}px, ${transform.ty}px, 0) scale(${transform.s})`,
           cursor: transform.s > 1 ? "grab" : "auto",
         }}
         onMouseDown={handleMouseDown}
+        onTouchStart={handleTouchStart}
       >
         {(zoomLevel > 1
           ? // на уровнях 2/3 не скрываем круги вовсе
@@ -641,9 +754,10 @@ export const RadarBoard: FC<RadarBoardProps> = ({
 
           // вычисляем размер шрифта для центрального названия так,
           // чтобы оно не переносилось и умещалось в круге — уменьшаем при необходимости
-          const nameMaxWidth = diameter * 0.6; // допустимая ширина внутри круга
-          const baseFont = 14; // предпочитаемый размер
-          const minFont = 9; // минимальный размер
+          const nameMaxWidth = BASE_DIAMETER * 0.6; // допустимая ширина внутри круга
+          const baseFont =
+            zoomLevel === 2 ? (isMobile ? 9 : 11) : isMobile ? 9 : 14;
+          const minFont = isMobile ? 7 : 8; // минимальный размер
           const approxCharWidth = 0.55; // прибл. ширина символа относительно font-size
           const desiredFont = Math.floor(
             nameMaxWidth / (Math.max(1, node.name.length) * approxCharWidth)
@@ -673,8 +787,8 @@ export const RadarBoard: FC<RadarBoardProps> = ({
               style={{
                 left: node.cx,
                 top: node.cy,
-                width: diameter,
-                height: diameter,
+                width: BASE_DIAMETER,
+                height: BASE_DIAMETER,
               }}
               onClick={() => handleClick(node)}
             >
@@ -687,10 +801,10 @@ export const RadarBoard: FC<RadarBoardProps> = ({
                   pointerEvents: "none",
                   zIndex: 2,
                   display: "inline-block",
-                  maxWidth: `${nameMaxWidth}px`,
+                  maxWidth: `${nameMaxWidth + "px"}`,
                   fontSize: `${nameFontSizePx}px`,
                   fontWeight: zoomLevel === 1 ? 600 : undefined,
-                  whiteSpace: zoomLevel === 1 ? "normal" : "nowrap",
+                  whiteSpace: zoomLevel === 1 || isMobile ? "normal" : "nowrap",
                   overflow: "visible",
                   textOverflow: "clip",
                   textAlign: "center",
@@ -741,7 +855,7 @@ export const RadarBoard: FC<RadarBoardProps> = ({
                       const key = normalize(label);
 
                       // 1) exact name match (normalized)
-                      let h = holdingsPool.find(
+                      const h = holdingsPool.find(
                         (hh) => normalize(hh.name || "") === key
                       );
                       if (h) return h;
@@ -794,7 +908,7 @@ export const RadarBoard: FC<RadarBoardProps> = ({
                           left: "50%",
                           top: "50%",
                           transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`,
-                          fontSize: `7px`,
+                          fontSize: `${isMobile ? "4px" : "7px"}`,
                           width: "auto",
                           whiteSpace: "normal",
                           textAlign: "center",
@@ -809,7 +923,7 @@ export const RadarBoard: FC<RadarBoardProps> = ({
                           const raw = item.text;
                           const match = findHoldingForLabel(raw);
                           // debug logging to help trace mismatches
-                          // eslint-disable-next-line no-console
+                           
                           console.log("RadarBoard: item click", {
                             raw,
                             normalized: normalize(raw),
@@ -857,7 +971,7 @@ export const RadarBoard: FC<RadarBoardProps> = ({
                             keyTelegrams: undefined,
                             otherAssets: undefined,
                           };
-                          // eslint-disable-next-line no-console
+                           
                           console.log(
                             "RadarBoard: opening synthetic holding",
                             synthetic.id

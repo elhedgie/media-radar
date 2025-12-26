@@ -27,11 +27,13 @@ export const DetailsDrawer: FC<DetailsDrawerProps> = ({ holding, onClose }) => {
       className={styles["details-overlay"]}
       role="presentation"
       data-prevent-search-close="true"
+      onClick={onClose}
     >
       <article
         className={styles["details-modal"]}
         role="dialog"
         aria-modal="true"
+        onClick={(e) => e.stopPropagation()}
       >
         <header className={styles["details-modal__header"]}>
           <div>

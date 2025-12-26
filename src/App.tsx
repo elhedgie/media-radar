@@ -6,14 +6,19 @@ import {
   tgChannels,
   tgChannelNameMap,
 } from "./data/holdings";
-import { fixedPositions } from "./data/fixedPositions";
+import { fixedMobilePositions, fixedPositions } from "./data/fixedPositions";
 import type { PositionedNode } from "./types";
 import { RadarBoard } from "./components/RadarBoard";
 import { DetailsDrawer } from "./components/DetailsDrawer";
 import { AppHeader } from "./components/AppHeader";
 import { manualLayout } from "./data/manualLayout";
 
-const DIAMETER = 205;
+const DIAMETER_DESKTOP = 205;
+const DIAMETER_MOBILE = 104;
+const ZOOM_DIAMETER_DESKTOP_2 = 380;
+const ZOOM_DIAMETER_DESKTOP_3 = 598;
+const ZOOM_DIAMETER_MOBILE_2 = 246;
+const ZOOM_DIAMETER_MOBILE_3 = 446;
 
 const channelPlacementMap: Record<string, { nodeId: string; label: string }> =
   (() => {
@@ -34,6 +39,7 @@ export default function App() {
   const boardRef = useRef<HTMLDivElement | null>(null);
   const [nodes, setNodes] = useState<PositionedNode[]>([]);
   const nodesRef = useRef<PositionedNode[]>([]);
+  const [isMobile, setIsMobile] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState<string[]>(["all"]);
   const [selectedHolding, setSelectedHolding] = useState<HoldingNode | null>(
@@ -57,7 +63,9 @@ export default function App() {
   const createInitial = (): PositionedNode[] => {
     const res: PositionedNode[] = [];
     for (const hnode of holdingsLevelOne) {
-      const fixed = fixedPositions[hnode.id];
+      const fixed = isMobile
+        ? fixedMobilePositions[hnode.id]
+        : fixedPositions[hnode.id];
       if (!fixed) continue;
       res.push({ ...hnode, cx: fixed.cx, cy: fixed.cy, vx: 0, vy: 0 });
     }
@@ -65,13 +73,20 @@ export default function App() {
   };
 
   useLayoutEffect(() => {
+    const check = () => setIsMobile(window.innerWidth <= 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
+  useLayoutEffect(() => {
     const initial = createInitial();
     nodesRef.current = initial;
     setNodes([...initial]);
-  }, []);
+  }, [isMobile]);
 
   const baseOptions = [
-    { id: "all", label: "СМИ и Telegram" },
+    { id: "all", label: isMobile ? "СМИ и TG" : "СМИ и Telegram" },
     { id: "warm", label: "Тёплый контакт" },
     { id: "media", label: "СМИ" },
     { id: "tg", label: "Telegram" },
@@ -164,11 +179,18 @@ export default function App() {
           setIsSearchOpen={setIsSearchOpen}
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
+          isMobile={isMobile}
         />
 
         <RadarBoard
+          isMobile={isMobile}
           nodes={nodes}
-          diameter={DIAMETER}
+          diameter={isMobile ? DIAMETER_MOBILE : DIAMETER_DESKTOP}
+          diameters={{
+            level1: isMobile ? DIAMETER_MOBILE : DIAMETER_DESKTOP,
+            level2: isMobile ? ZOOM_DIAMETER_MOBILE_2 : ZOOM_DIAMETER_DESKTOP_2,
+            level3: isMobile ? ZOOM_DIAMETER_MOBILE_3 : ZOOM_DIAMETER_DESKTOP_3,
+          }}
           onSelect={(h) => {
             if (!h) {
               setSelectedHolding(null);
@@ -199,7 +221,9 @@ export default function App() {
         holding={selectedHolding}
         onClose={() => {
           setSelectedHolding(null);
-          _setResetZoomTrigger((t) => t + 1);
+          if (!isMobile) {
+            _setResetZoomTrigger((t) => t + 1);
+          }
         }}
       />
     </>

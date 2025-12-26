@@ -24,6 +24,7 @@ type AppHeaderProps = {
   setIsSearchOpen: (param: boolean) => void;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
+  isMobile: boolean;
 };
 
 export const AppHeader: FC<AppHeaderProps> = ({
@@ -39,6 +40,7 @@ export const AppHeader: FC<AppHeaderProps> = ({
   setIsSearchOpen,
   searchQuery,
   setSearchQuery,
+  isMobile,
 }) => {
   return (
     <>
@@ -66,34 +68,49 @@ export const AppHeader: FC<AppHeaderProps> = ({
         </div>
         <div className={styles["toolbar__zoom"]}>
           <button onClick={onZoomIn} aria-label="Zoom In">
-            <svg width="19" height="19" viewBox="0 0 19 19" fill="none">
+            <svg
+              width="26"
+              height="26"
+              viewBox="0 0 26 26"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
               <line
-                x1="18.976"
-                y1="9.70299"
-                x2="8.29466e-07"
-                y2="9.70299"
+                x1="25.0117"
+                y1="12.7531"
+                x2="0.780439"
+                y2="12.7531"
                 stroke="#262628"
-                strokeWidth="1.79269"
+                stroke-width="1.56088"
+                stroke-linecap="round"
               />
               <line
-                x1="9.1207"
-                y1="18.9766"
-                x2="9.1207"
-                y2="0.000594004"
+                x1="12.83"
+                y1="25.0125"
+                x2="12.83"
+                y2="0.781297"
                 stroke="#262628"
-                strokeWidth="1.79269"
+                stroke-width="1.56088"
+                stroke-linecap="round"
               />
             </svg>
           </button>
           <button onClick={onZoomOut} aria-label="Zoom Out">
-            <svg width="19" height="2" viewBox="0 0 19 2" fill="none">
+            <svg
+              width="26"
+              height="2"
+              viewBox="0 0 26 2"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
               <line
-                x1="18.976"
-                y1="0.896347"
-                x2="-1.90735e-06"
-                y2="0.896347"
+                x1="25.0116"
+                y1="0.780438"
+                x2="0.780319"
+                y2="0.780438"
                 stroke="#262628"
-                strokeWidth="1.79269"
+                stroke-width="1.56088"
+                stroke-linecap="round"
               />
             </svg>
           </button>
@@ -103,6 +120,9 @@ export const AppHeader: FC<AppHeaderProps> = ({
           <button
             className={styles["icon-button"]}
             onClick={() => setIsSearchOpen(!isSearchOpen)}
+            style={
+              isMobile && isSearchOpen ? { visibility: "hidden" } : undefined
+            }
           >
             <svg width="19" height="21" viewBox="0 0 19 21" fill="none">
               <circle
