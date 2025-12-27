@@ -40,6 +40,7 @@ export default function App() {
   const [nodes, setNodes] = useState<PositionedNode[]>([]);
   const nodesRef = useRef<PositionedNode[]>([]);
   const [isMobile, setIsMobile] = useState(false);
+  const [mobileOffsetX, setMobileOffsetX] = useState(0);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState<string[]>(["all"]);
   const [selectedHolding, setSelectedHolding] = useState<HoldingNode | null>(
@@ -67,13 +68,24 @@ export default function App() {
         ? fixedMobilePositions[hnode.id]
         : fixedPositions[hnode.id];
       if (!fixed) continue;
-      res.push({ ...hnode, cx: fixed.cx, cy: fixed.cy, vx: 0, vy: 0 });
+      res.push({
+        ...hnode,
+        cx: fixed.cx + (isMobile ? mobileOffsetX : 0),
+        cy: fixed.cy,
+        vx: 0,
+        vy: 0,
+      });
     }
     return res;
   };
 
   useLayoutEffect(() => {
-    const check = () => setIsMobile(window.innerWidth <= 768);
+    const baseMobileWidth = 375;
+    const check = () => {
+      const width = window.innerWidth;
+      setIsMobile(width <= 768);
+      setMobileOffsetX(Math.max(0, (width - baseMobileWidth) / 2));
+    };
     check();
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
@@ -83,7 +95,7 @@ export default function App() {
     const initial = createInitial();
     nodesRef.current = initial;
     setNodes([...initial]);
-  }, [isMobile]);
+  }, [isMobile, mobileOffsetX]);
 
   const baseOptions = [
     { id: "all", label: isMobile ? "СМИ и TG" : "СМИ и Telegram" },

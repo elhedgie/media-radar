@@ -819,6 +819,12 @@ font-size: 5px;}
   gap: 1.45rem;
 }
 
+@media (min-width: 600px) and (max-width: 900px) {
+  .radar-wrapper {
+    align-items: center;
+  }
+}
+
   .toolbar__zoom {
     position: fixed;
     left: 50%;
